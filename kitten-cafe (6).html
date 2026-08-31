@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Kitten Café 🐾</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#FBF3E7;--cream-2:#FDEFDD;--wall-1:#FCE9D2;--wall-2:#F6D9BE;
+  --ink:#5A4636;--ink-soft:#8A7561;
+  --coral:#F08C6E;--coral-d:#DE7253;--pink:#F4A9B8;--mint:#9FD4C2;--mint-d:#74BBA4;
+  --gold:#F2C14E;--gold-d:#E0A82E;--sleep:#8E7CC3;--sleep-d:#6f5da6;
+  --sky:#CDE7EF;--card:#FFFDF8;--shadow:rgba(123,90,60,.22);
+  --tummy:#F6A26B;--mood:#F38BA6;--energy:#8FC8E6;--hyg:#86CFE0;--growth:#A6CF8C;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;-webkit-touch-callout:none;}
+html,body{margin:0;height:100%;}
+body{font-family:'Nunito',sans-serif;color:var(--ink);
+  background:radial-gradient(circle at 18% 12%,rgba(159,212,194,.35),transparent 42%),
+    radial-gradient(circle at 85% 8%,rgba(244,169,184,.35),transparent 40%),
+    radial-gradient(circle at 50% 120%,rgba(240,140,110,.25),transparent 55%),var(--cream);
+  background-attachment:fixed;display:flex;justify-content:center;align-items:flex-start;min-height:100%;padding:14px;}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.5;background-image:radial-gradient(rgba(123,90,60,.06) 1px,transparent 1px);background-size:18px 18px;}
+.app{width:100%;max-width:440px;position:relative;z-index:1;display:flex;flex-direction:column;gap:11px;}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.logo{font-family:'Fredoka';font-weight:700;font-size:23px;display:flex;align-items:center;gap:7px;}
+.logo .paw{font-size:21px;filter:drop-shadow(0 2px 0 rgba(0,0,0,.06));}
+.right-tools{display:flex;align-items:center;gap:8px;}
+.wallet{background:linear-gradient(180deg,#FFF6E0,#FCE9BE);border:2px solid var(--gold-d);border-radius:999px;padding:7px 14px 7px 11px;display:flex;align-items:center;gap:7px;font-family:'Fredoka';font-weight:600;font-size:16px;color:#9A6B16;box-shadow:0 4px 0 rgba(224,168,46,.5);}
+.wallet .coin{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FFE38A,#EBB02E);border:2px solid #C98F1C;display:grid;place-items:center;font-size:11px;color:#9A6B16;}
+.wallet #pts{min-width:14px;text-align:center;transition:transform .15s;}
+.wallet.bump #pts{transform:scale(1.35);}
+.icon-btn{width:40px;height:40px;border:none;border-radius:14px;background:var(--card);box-shadow:0 4px 0 var(--shadow);font-size:18px;cursor:pointer;color:var(--ink);display:grid;place-items:center;transition:transform .08s,box-shadow .08s;}
+.icon-btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--shadow);}
+/* room bar */
+.room-bar{display:flex;gap:8px;align-items:center;overflow-x:auto;scrollbar-width:none;}
+.room-bar::-webkit-scrollbar{display:none;}
+.room-chip{flex:0 0 auto;border:2px solid transparent;background:var(--card);border-radius:14px;padding:7px 12px;font-family:'Fredoka';font-weight:600;font-size:13px;color:var(--ink-soft);box-shadow:0 3px 0 var(--shadow);cursor:pointer;display:flex;align-items:center;gap:6px;}
+.room-chip.active{border-color:var(--mint-d);color:#2f6b59;box-shadow:0 3px 0 rgba(116,187,164,.5);}
+.room-chip .cnt{font-size:11px;background:#EFE3D2;border-radius:8px;padding:1px 6px;}
+.room-chip.addroom{border:2px dashed var(--coral);color:var(--coral-d);background:rgba(240,140,110,.08);}
+/* stage / room */
+.stage{position:relative;border-radius:26px;overflow:hidden;height:332px;
+  background:linear-gradient(180deg,var(--wall-1) 0%,var(--wall-2) 58%,#EFC59E 58%,#E8B98E 100%);
+  box-shadow:0 12px 30px var(--shadow),inset 0 0 0 4px rgba(255,255,255,.4);}
+.window{position:absolute;top:18px;left:50%;transform:translateX(-50%);width:128px;height:80px;border-radius:64px 64px 12px 12px;background:linear-gradient(180deg,var(--sky),#E8F4F6);border:6px solid #FFFDF8;box-shadow:0 6px 14px rgba(123,90,60,.18);overflow:hidden;}
+.window::before{content:"";position:absolute;left:50%;top:0;bottom:0;width:5px;transform:translateX(-50%);background:#FFFDF8;}
+.cloud{position:absolute;width:38px;height:14px;background:#fff;border-radius:20px;opacity:.9;animation:drift 16s linear infinite;}
+.cloud.c2{top:36px;width:26px;height:11px;animation-duration:22s;animation-delay:-6s;opacity:.75;}
+.cloud.c1{top:14px;}
+@keyframes drift{0%{transform:translateX(-50px);}100%{transform:translateX(150px);}}
+.sun{position:absolute;top:11px;right:13px;width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 40% 40%,#FFE9A8,#F4C75A);box-shadow:0 0 16px rgba(244,199,90,.7);}
+.floor{position:absolute;left:0;right:0;bottom:0;height:42%;}
+.furniLayer{position:absolute;inset:0;z-index:2;}
+.furni{position:absolute;z-index:1;}
+.couch{bottom:16px;left:6px;width:80px;height:44px;}
+.couch .back{position:absolute;bottom:13px;left:0;width:80px;height:26px;border-radius:12px 12px 8px 8px;background:#C98F6B;box-shadow:inset 0 4px 0 rgba(255,255,255,.16);}
+.couch .seat{position:absolute;bottom:5px;left:6px;width:68px;height:19px;border-radius:9px;background:#E0A883;}
+.couch .arm{position:absolute;bottom:5px;width:11px;height:27px;border-radius:7px;background:#BC7F5C;}
+.couch .arm.l{left:-2px;}.couch .arm.r{right:-2px;}
+.couch .scratch{position:absolute;bottom:9px;left:13px;width:44px;height:21px;border-radius:6px;opacity:0;transition:opacity .5s;background:repeating-linear-gradient(118deg,transparent 0 5px,rgba(90,48,28,.6) 5px 7px);}
+.litter{bottom:14px;right:6px;width:58px;height:32px;cursor:pointer;}
+.litter .tray{position:absolute;bottom:0;left:0;width:58px;height:22px;border-radius:6px 6px 10px 10px;background:#9AA2AC;box-shadow:inset 0 3px 0 rgba(255,255,255,.22);}
+.litter .rim{position:absolute;bottom:17px;left:0;width:58px;height:6px;border-radius:6px;background:#828A95;}
+.litter .sand{position:absolute;bottom:5px;left:5px;width:48px;height:13px;border-radius:8px;background:#E8DCC2;transition:background .4s;}
+.litter .clump{position:absolute;border-radius:50%;background:#6f5d49;}
+.litter .label{position:absolute;top:-12px;left:0;width:100%;text-align:center;font-size:8px;font-weight:800;color:#7a5a3a;}
+.litter:active{transform:scale(.96);}
+.post{bottom:18px;left:90px;width:24px;height:60px;cursor:pointer;}
+.post .base{position:absolute;bottom:0;left:0;width:24px;height:8px;border-radius:5px;background:#B8895C;}
+.post .pole{position:absolute;bottom:6px;left:8px;width:8px;height:50px;background:#C8A06E;border-radius:4px;}
+.post .wrap{position:absolute;bottom:12px;left:4px;width:15px;height:28px;border-radius:4px;background:repeating-linear-gradient(0deg,#D8C4A0 0 4px,#C9B086 4px 6px);}
+.post .ball{position:absolute;top:-3px;left:4px;font-size:12px;}
+.bed{bottom:8px;left:50%;transform:translateX(-50%);width:120px;height:30px;border-radius:70px/24px;background:radial-gradient(ellipse at center,#F6CFDC 0%,#EAA0B7 70%,#DA8BA7 100%);box-shadow:inset 0 5px 9px rgba(0,0,0,.12);}
+.perch{top:96px;right:10px;font-size:22px;}
+.fountain{bottom:16px;left:160px;font-size:22px;}
+.hammock{top:84px;left:14px;font-size:24px;}
+.tree{bottom:16px;right:70px;font-size:30px;}
+.blanket{bottom:12px;left:120px;font-size:22px;}
+.feeder{bottom:14px;left:200px;width:46px;height:40px;cursor:pointer;}
+.feeder .bowl{position:absolute;bottom:0;left:0;width:46px;height:20px;border-radius:6px 6px 22px 22px/6px 6px 16px 16px;background:linear-gradient(180deg,#D8DEE6,#AEB8C4);box-shadow:inset 0 3px 0 rgba(255,255,255,.4);}
+.feeder .hopper{position:absolute;bottom:16px;left:9px;width:28px;height:24px;border-radius:7px 7px 3px 3px;background:linear-gradient(180deg,#F4A85A,#E0863A);box-shadow:inset 0 3px 0 rgba(255,255,255,.25);}
+.feeder .kib{position:absolute;bottom:5px;left:8px;width:30px;height:11px;border-radius:8px;background:repeating-radial-gradient(circle at 4px 4px,#C98438 0 2px,#E0A060 2px 4px);}
+.feeder .lvl{position:absolute;top:-13px;left:50%;transform:translateX(-50%);font-size:8px;font-weight:800;color:#7a5a3a;white-space:nowrap;}
+.feeder .gauge{position:absolute;bottom:-7px;left:3px;width:40px;height:5px;border-radius:4px;background:#E3D6C2;overflow:hidden;}
+.feeder .gauge>span{display:block;height:100%;background:linear-gradient(90deg,#F8C08A,#E0863A);border-radius:4px;}
+.feeder:active{transform:translateX(-50%) scale(.96);}
+.poopLayer{position:absolute;inset:0;pointer-events:none;z-index:5;}
+.poop{position:absolute;font-size:18px;cursor:pointer;pointer-events:auto;animation:plop .35s ease;filter:drop-shadow(0 2px 1px rgba(0,0,0,.2));}
+.poop .stink{position:absolute;top:-10px;left:5px;font-size:9px;animation:rise 2s ease-in-out infinite;}
+@keyframes plop{0%{transform:scale(0) translateY(-8px);}70%{transform:scale(1.2);}100%{transform:scale(1);}}
+@keyframes rise{0%,100%{opacity:.25;transform:translateY(0);}50%{opacity:.8;transform:translateY(-4px);}}
+/* cats */
+.catsLayer{position:absolute;inset:0;z-index:3;pointer-events:none;}
+.catSprite{position:absolute;left:0;bottom:0;will-change:transform;cursor:pointer;pointer-events:auto;}
+.catSprite .svgholder{transform-origin:center bottom;}
+.catSprite svg{display:block;overflow:visible;filter:drop-shadow(0 6px 5px rgba(123,90,60,.25));}
+.catSprite.sick svg{filter:drop-shadow(0 6px 5px rgba(123,90,60,.25)) saturate(.5) brightness(.96);}
+/* whole-body bob while walking */
+.catSprite.walking .svgholder{animation:walkbob .34s ease-in-out infinite;}
+@keyframes walkbob{0%,100%{transform:translateY(0);}50%{transform:translateY(-2.5px);}}
+/* tail always sways gently; faster when walking */
+.catG .tail{transform-box:fill-box;transform-origin:50% 90%;animation:tailsway 2.6s ease-in-out infinite;}
+.catSprite.walking .catG .tail{animation:tailsway 0.7s ease-in-out infinite;}
+@keyframes tailsway{0%,100%{transform:rotate(-6deg);}50%{transform:rotate(10deg);}}
+/* four-leg gait: front/back legs alternate (diagonal pairs) */
+.legFL,.legBL,.legFR,.legBR{transform-box:fill-box;transform-origin:50% 8%;}
+.catSprite.walking .legFL,.catSprite.walking .legBR{animation:legA .34s ease-in-out infinite;}
+.catSprite.walking .legFR,.catSprite.walking .legBL{animation:legB .34s ease-in-out infinite;}
+@keyframes legA{0%,100%{transform:rotate(16deg);}50%{transform:rotate(-16deg);}}
+@keyframes legB{0%,100%{transform:rotate(-16deg);}50%{transform:rotate(16deg);}}
+/* action animations applied to .catG */
+.catSprite .catG{transform-box:fill-box;transform-origin:50% 80%;}
+.catSprite .catG.squat{animation:a_squat 1.1s ease;}
+.catSprite .catG.eat{animation:a_eat 0.9s ease;}
+.catSprite .catG.play{animation:a_play 0.7s ease;}
+.catSprite .catG.scratch{animation:a_scratch 0.7s ease;}
+.catSprite .catG.love{animation:a_love 1s ease;}
+.catSprite .catG.happy{animation:a_happy 0.6s ease;}
+.catSprite .catG.spew{animation:a_spew 1.4s ease;}
+@keyframes a_spew{0%{transform:translateY(0) rotate(0);}15%{transform:translateY(-3px);}30%,50%,70%{transform:translateY(2px) scaleY(.92);}40%,60%{transform:translateY(-1px);}100%{transform:translateY(0);}}
+/* sleeping: curl up small and cozy, gently breathing */
+.catSprite.sleeping .svgholder{animation:none;}
+.catSprite.sleeping .catG{animation:catnap 4s ease-in-out infinite;transform-origin:50% 90%;}
+@keyframes catnap{0%,100%{transform:scale(.84,.74) translateY(8px);}50%{transform:scale(.86,.72) translateY(9px);}}
+.catSprite.sleeping .legFL,.catSprite.sleeping .legBL,.catSprite.sleeping .legFR,.catSprite.sleeping .legBR{transform:scaleY(.4);transform-origin:50% 100%;}
+.catSprite.sleeping .catG .tail{animation:tailcurl 4s ease-in-out infinite;}
+@keyframes tailcurl{0%,100%{transform:rotate(40deg);}50%{transform:rotate(48deg);}}
+/* breeding: gentle happy sway */
+.catSprite.breeding .catG{animation:breedsway 1.6s ease-in-out infinite;transform-origin:50% 90%;}
+@keyframes breedsway{0%,100%{transform:rotate(-3deg) translateY(0);}50%{transform:rotate(3deg) translateY(-2px);}}
+@keyframes a_squat{0%,100%{transform:translateY(0) scaleY(1);}35%{transform:translateY(10px) scaleY(.8);}70%{transform:translateY(9px) scaleY(.84);}}
+@keyframes a_eat{0%,100%{transform:rotate(0) translateY(0);}25%{transform:rotate(3deg) translateY(4px);}50%{transform:rotate(0) translateY(0);}75%{transform:rotate(3deg) translateY(4px);}}
+@keyframes a_play{0%,100%{transform:rotate(0) translateY(0);}20%{transform:rotate(-6deg) translateY(-6px);}50%{transform:rotate(6deg) translateY(-2px);}80%{transform:rotate(-4deg) translateY(-5px);}}
+@keyframes a_scratch{0%,100%{transform:translate(0,0) rotate(0);}25%{transform:translate(3px,-2px) rotate(-3deg);}50%{transform:translate(-2px,1px) rotate(2deg);}75%{transform:translate(3px,-2px) rotate(-3deg);}}
+@keyframes a_love{0%,100%{transform:scale(1);}30%{transform:scale(1.08) rotate(-3deg);}60%{transform:scale(1.05) rotate(3deg);}}
+@keyframes a_happy{0%,100%{transform:translateY(0);}40%{transform:translateY(-9px);}}
+.catSprite .ring{position:absolute;left:50%;bottom:-4px;transform:translateX(-50%);width:70%;height:14px;border-radius:50%;border:2.5px solid var(--coral);opacity:0;transition:opacity .2s;}
+.catSprite.selected .ring{opacity:.9;}
+.catSprite .tag{position:absolute;left:50%;top:-15px;transform:translateX(-50%);background:rgba(255,253,248,.95);border-radius:8px;padding:1px 7px;font-family:'Fredoka';font-weight:600;font-size:10px;color:var(--ink);white-space:nowrap;box-shadow:0 2px 0 var(--shadow);}
+.catSprite .alert{position:absolute;left:50%;top:-30px;transform:translateX(-50%);font-size:15px;}
+.catSprite .zzz{position:absolute;left:64%;top:-22px;font-family:'Fredoka';font-weight:700;color:#7C6AAE;font-size:15px;letter-spacing:1px;opacity:0;}
+.catSprite.sleeping .zzz{opacity:1;animation:zfloat 2.4s ease-in-out infinite;}
+@keyframes zfloat{0%{transform:translateY(0);opacity:.3;}50%{opacity:1;}100%{transform:translateY(-14px);opacity:0;}}
+.nameStack{position:absolute;top:8px;left:8px;display:flex;flex-direction:column;gap:4px;z-index:12;max-width:48%;}
+.nameChip{background:rgba(255,253,248,.94);border-radius:9px;padding:3px 9px;font-family:'Fredoka';font-weight:600;font-size:11px;color:var(--ink);box-shadow:0 2px 0 var(--shadow);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:2px solid transparent;}
+.nameChip.sel{border-color:var(--coral);box-shadow:0 2px 0 var(--coral-d);}
+.furni{cursor:grab;touch-action:none;}
+.furni.dragging{cursor:grabbing;opacity:.85;filter:drop-shadow(0 8px 6px rgba(0,0,0,.25));}
+.zone{cursor:pointer;fill:transparent;}
+.emote{position:absolute;left:50%;bottom:8px;transform:translateX(-50%) translateY(10px);background:#fff;border-radius:16px;padding:6px 14px;font-weight:800;font-size:13px;color:var(--ink);box-shadow:0 4px 0 var(--shadow);opacity:0;pointer-events:none;white-space:nowrap;transition:opacity .2s,transform .2s;z-index:9;}
+.emote::after{content:"";position:absolute;top:-7px;left:50%;transform:translateX(-50%);border:7px solid transparent;border-bottom-color:#fff;}
+.emote.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.dangerBanner{position:absolute;left:50%;top:8px;transform:translateX(-50%);background:#D9534F;color:#fff;font-weight:800;font-size:11.5px;padding:6px 12px;border-radius:999px;box-shadow:0 4px 10px rgba(160,40,40,.4);z-index:10;display:none;animation:pulse 1s ease-in-out infinite;white-space:nowrap;max-width:92%;overflow:hidden;text-overflow:ellipsis;}
+@keyframes pulse{0%,100%{transform:translateX(-50%) scale(1);}50%{transform:translateX(-50%) scale(1.05);}}
+.fx{position:absolute;pointer-events:none;font-weight:800;font-size:19px;z-index:8;}
+@keyframes floatup{0%{transform:translate(-50%,0) scale(.6);opacity:0;}20%{opacity:1;transform:translate(-50%,-12px) scale(1.1);}100%{transform:translate(-50%,-64px) scale(.9);opacity:0;}}
+/* stats */
+.stats{background:var(--card);border-radius:20px;padding:11px 14px;box-shadow:0 8px 0 var(--shadow);display:flex;flex-direction:column;gap:7px;}
+.statshead{display:flex;align-items:center;justify-content:space-between;margin-bottom:1px;}
+.statshead .who{font-family:'Fredoka';font-weight:600;font-size:15px;display:flex;align-items:center;gap:6px;}
+.statshead .stg{background:var(--mint);color:#2f6b59;border-radius:999px;padding:3px 9px;font-weight:800;font-size:10.5px;}
+.stat{display:flex;align-items:center;gap:10px;}
+.stat .ico{font-size:15px;width:19px;text-align:center;}
+.stat .lbl{font-weight:800;font-size:10.5px;width:52px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.3px;}
+.bar{flex:1;height:12px;border-radius:9px;background:#EFE3D2;overflow:hidden;box-shadow:inset 0 2px 3px rgba(123,90,60,.16);}
+.bar>span{display:block;height:100%;border-radius:9px;transition:width .45s cubic-bezier(.3,1.3,.5,1);}
+.fill-tummy{background:linear-gradient(90deg,#F8C08A,var(--tummy));}.fill-mood{background:linear-gradient(90deg,#F8B4C6,var(--mood));}
+.fill-energy{background:linear-gradient(90deg,#B7E0F2,var(--energy));}.fill-hyg{background:linear-gradient(90deg,#BDEAF2,var(--hyg));}
+.fill-growth{background:linear-gradient(90deg,#C6E3AB,var(--growth));}
+.pct{font-weight:800;font-size:10.5px;width:30px;text-align:right;color:var(--ink-soft);}
+.sex-f{color:#E86D9A;}.sex-m{color:#5B8DD6;}
+.actions{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;}
+.act{border:none;border-radius:17px;padding:11px 3px 9px;cursor:pointer;font-family:'Fredoka';font-weight:600;font-size:12.5px;color:#fff;display:flex;flex-direction:column;align-items:center;gap:3px;transition:transform .08s,box-shadow .08s;}
+.act .e{font-size:21px;}
+.act:active{transform:translateY(4px);}
+.act.feed{background:var(--coral);box-shadow:0 5px 0 var(--coral-d);}.act.play{background:var(--mint-d);box-shadow:0 5px 0 #5aa48c;}
+.act.sleep{background:var(--sleep);box-shadow:0 5px 0 var(--sleep-d);}.act.shop{background:var(--gold-d);box-shadow:0 5px 0 #c08e1d;}
+.act.feed:active{box-shadow:0 1px 0 var(--coral-d);}.act.play:active{box-shadow:0 1px 0 #5aa48c;}.act.sleep:active{box-shadow:0 1px 0 var(--sleep-d);}.act.shop:active{box-shadow:0 1px 0 #c08e1d;}
+.hint{text-align:center;font-weight:700;font-size:11.5px;color:var(--ink-soft);margin:-1px 0 1px;}
+.scrim{position:fixed;inset:0;background:rgba(90,70,54,.45);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .25s;z-index:40;}
+.scrim.open{opacity:1;pointer-events:auto;}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:50;margin:0 auto;max-width:440px;background:var(--cream-2);border-radius:26px 26px 0 0;padding:10px 16px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -10px 30px rgba(123,90,60,.3);transform:translateY(110%);transition:transform .32s cubic-bezier(.3,1.1,.4,1);max-height:82vh;overflow-y:auto;}
+.sheet.open{transform:translateY(0);}
+.grab{width:44px;height:5px;border-radius:5px;background:rgba(123,90,60,.25);margin:4px auto 12px;}
+.sheet h2{font-family:'Fredoka';font-weight:600;font-size:20px;margin:0 0 4px;display:flex;align-items:center;gap:8px;}
+.sheet .sub{margin:0 0 14px;color:var(--ink-soft);font-weight:700;font-size:12.5px;}
+.tabs{display:flex;gap:5px;margin-bottom:14px;flex-wrap:wrap;}
+.tab{flex:1 1 auto;min-width:54px;border:none;border-radius:12px;padding:8px 2px;font-family:'Fredoka';font-weight:600;font-size:11px;background:#fff;color:var(--ink-soft);box-shadow:0 3px 0 var(--shadow);cursor:pointer;}
+.tab.active{background:var(--coral);color:#fff;box-shadow:0 3px 0 var(--coral-d);}
+.item{display:flex;align-items:center;gap:11px;background:#fff;border-radius:18px;padding:10px 12px;margin-bottom:9px;box-shadow:0 4px 0 var(--shadow);}
+.item.selectable{cursor:pointer;border:2.5px solid transparent;}
+.item.selected{border-color:#E86D9A;background:#FFF3F7;}
+.item .big{font-size:25px;width:44px;height:44px;border-radius:13px;display:grid;place-items:center;background:var(--cream);flex:0 0 auto;}
+.item .info{flex:1;min-width:0;}
+.item .nm{font-family:'Fredoka';font-weight:600;font-size:15px;display:flex;align-items:center;gap:6px;}
+.item .ds{font-size:11px;font-weight:700;color:var(--ink-soft);margin-top:1px;line-height:1.34;}
+.buy{border:none;border-radius:12px;padding:8px 11px;font-family:'Fredoka';font-weight:600;font-size:12.5px;background:linear-gradient(180deg,#FFF1C9,#F6CF6A);color:#8a5e10;border:2px solid var(--gold-d);box-shadow:0 3px 0 rgba(224,168,46,.6);cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:4px;transition:transform .08s;}
+.buy:active{transform:translateY(2px);}
+.buy.owned{background:#E6EFDD;border-color:var(--mint-d);color:#3f6b53;box-shadow:0 3px 0 rgba(116,187,164,.5);}
+.buy.use{background:var(--mint);border-color:var(--mint-d);color:#2f6b59;box-shadow:0 3px 0 #5aa48c;}
+.buy.love{background:#F9D2E1;border-color:#E86D9A;color:#A93D66;box-shadow:0 3px 0 rgba(232,109,154,.5);width:100%;justify-content:center;padding:11px;}
+.buy:disabled{opacity:.5;cursor:default;transform:none;}
+.coin-mini{width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FFE38A,#EBB02E);border:1.5px solid #C98F1C;}
+.movebtns{display:flex;gap:5px;flex-wrap:wrap;}
+.movebtns .mv{border:none;border-radius:10px;padding:6px 9px;font-family:'Fredoka';font-weight:600;font-size:11px;background:#EFE3D2;color:var(--ink);cursor:pointer;}
+.doorToggle{display:inline-flex;align-items:center;gap:6px;margin-top:5px;font-family:'Fredoka';font-weight:600;font-size:12px;color:var(--ink);cursor:pointer;}
+.doorToggle input{width:16px;height:16px;accent-color:var(--coral);cursor:pointer;}
+.rename-row{display:flex;gap:8px;margin-bottom:12px;}
+.rename-row input{flex:1;border:2px solid #E4D3BC;border-radius:12px;padding:9px 12px;font-family:'Nunito';font-weight:800;font-size:15px;color:var(--ink);background:#fff;outline:none;}
+.rename-row input:focus{border-color:var(--coral);}
+.coltitle{font-family:'Fredoka';font-weight:600;font-size:13px;margin:6px 0 8px;}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);z-index:80;background:var(--ink);color:#fff;font-weight:800;font-size:13px;padding:11px 18px;border-radius:999px;box-shadow:0 8px 20px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.25s;max-width:90%;text-align:center;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="logo"><span class="paw">🐾</span>Kitten&nbsp;Café</div>
+    <div class="right-tools"><div class="wallet" id="wallet"><span class="coin">✦</span><span id="pts">0</span></div><button class="icon-btn" id="soundBtn">🔊</button></div>
+  </div>
+
+  <div class="room-bar" id="roomBar"></div>
+
+  <div class="stage" id="stage">
+    <div class="sun"></div>
+    <div class="window"><div class="cloud c1" style="left:-30px;"></div><div class="cloud c2" style="left:40px;"></div></div>
+    <div class="furniLayer" id="furniLayer"></div>
+    <div class="poopLayer" id="poopLayer"></div>
+    <div class="catsLayer" id="catsLayer"></div>
+    <div class="dangerBanner" id="dangerBanner"></div>
+    <div class="nameStack" id="nameStack"></div>
+    <div class="emote" id="emote"></div>
+  </div>
+
+  <div class="hint" id="hint">Tap a cat to select &amp; pet it 💗 · they roam, nap, and use the litter box on their own</div>
+
+  <div class="stats" id="stats">
+    <div class="statshead"><span class="who" id="who">Mochi</span><span class="stg" id="stg">Kitten</span></div>
+    <div class="stat"><span class="ico">🍗</span><span class="lbl">Tummy</span><div class="bar"><span class="fill-tummy" id="bar-tummy"></span></div><span class="pct" id="pct-tummy"></span></div>
+    <div class="stat"><span class="ico">💗</span><span class="lbl">Mood</span><div class="bar"><span class="fill-mood" id="bar-mood"></span></div><span class="pct" id="pct-mood"></span></div>
+    <div class="stat"><span class="ico">⚡</span><span class="lbl">Energy</span><div class="bar"><span class="fill-energy" id="bar-energy"></span></div><span class="pct" id="pct-energy"></span></div>
+    <div class="stat"><span class="ico">🧼</span><span class="lbl">Hygiene</span><div class="bar"><span class="fill-hyg" id="bar-hygiene"></span></div><span class="pct" id="pct-hygiene"></span></div>
+    <div class="stat"><span class="ico">🌱</span><span class="lbl">Growth</span><div class="bar"><span class="fill-growth" id="bar-growth"></span></div><span class="pct" id="pct-growth"></span></div>
+  </div>
+
+  <div class="actions">
+    <button class="act feed" data-sheet="feed"><span class="e">🍽️</span>Feed</button>
+    <button class="act play" data-sheet="play"><span class="e">🧶</span>Play</button>
+    <button class="act sleep" id="sleepBtn"><span class="e" id="sleepEmoji">😴</span><span id="sleepLbl">Sleep</span></button>
+    <button class="act shop" data-sheet="shop"><span class="e">🛒</span>Shop</button>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet"><div class="grab"></div><div id="sheetBody"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================ DATA ============================ */
+const NAMES=["Mochi","Biscuit","Tofu","Pumpkin","Mittens","Noodle","Pickle","Waffle","Pippin","Suki","Bean","Maple","Cookie","Sushi","Pudding","Clover","Peanut","Olive","Mango","Hazel","Poppy","Ginger"];
+const BREEDS={
+  cream:{name:"Cream Puff",fur:"#F3D9B1",shade:"#E6C088",belly:"#FCEFD9",ear:"#F4B9C0",eye:"#7FB069",nose:"#E59AAB"},
+  orange:{name:"Marmalade",fur:"#F4A85A",shade:"#E0863A",belly:"#FBE2C4",ear:"#F2A9AE",eye:"#6FA85B",nose:"#D98796",stripes:true},
+  gray:{name:"Silver Mist",fur:"#BEC8D2",shade:"#9EABB8",belly:"#E7EDF1",ear:"#EBAAB1",eye:"#E0A93B",nose:"#C98B95"},
+  tux:{name:"Tuxedo",fur:"#46464F",shade:"#33333B",belly:"#F8F8FB",ear:"#C98C93",eye:"#EEC84A",nose:"#54545E",tux:true},
+  calico:{name:"Calico",fur:"#F6EAD6",shade:"#E0863A",belly:"#FCF4E7",ear:"#F2A9AE",eye:"#7FB069",nose:"#D98796",calico:true},
+  siamese:{name:"Siamese",fur:"#EFE3CE",shade:"#74604F",belly:"#F8F1E3",ear:"#7A6152",eye:"#5BA7D6",nose:"#9C7B6A",points:true},
+  snow:{name:"Snowball",fur:"#F5F2ED",shade:"#DCD5CA",belly:"#FFFFFF",ear:"#F4B9C0",eye:"#6FB7D6",nose:"#E59AAB"},
+  shadow:{name:"Shadow",fur:"#3C3C45",shade:"#2C2C33",belly:"#4A4A54",ear:"#B98C92",eye:"#9AD15B",nose:"#54545E"},
+  hazel:{name:"Hazel Tabby",fur:"#B98A5E",shade:"#946B45",belly:"#E6D2B8",ear:"#E3A6A0",eye:"#E0A93B",nose:"#C98B95",stripes:true},
+  tortie:{name:"Tortoiseshell",fur:"#6B5644",shade:"#D9803A",belly:"#E9D9C4",ear:"#E3A6A0",eye:"#C9883A",nose:"#8A6A55",calico:true},
+  caramel:{name:"Caramel",fur:"#D9A86E",shade:"#BE8A52",belly:"#F3DFC2",ear:"#F2B6A0",eye:"#7FB069",nose:"#C98B95"},
+};
+const BREED_ORDER=["cream","orange","gray","tux","calico","siamese","snow","shadow","hazel","tortie","caramel"];
+
+/* Real four-legged side-view cat with distinct life-stage builds.
+   px = sprite height. headR = head radius. bodyRx/bodyRy = trunk size.
+   legLen = leg drop. eyeSc = eye size. earSc = ear size. tailSc = tail size.
+   kitten: huge head + eyes, tiny round body, stubby legs, short tail.
+   adult: smaller head ratio, long sleek body, longer legs. */
+const STAGES=[
+  {key:"kitten",label:"Kitten",px:74, headR:30, bodyRx:34, bodyRy:24, legLen:26, eyeSc:1.35, earSc:0.92, tailSc:0.78, until:1200},
+  {key:"teen",  label:"Teen",  px:94, headR:27, bodyRx:48, bodyRy:27, legLen:38, eyeSc:1.08, earSc:1.04, tailSc:0.95, until:6000},
+  {key:"adult", label:"Adult", px:112,headR:24, bodyRx:60, bodyRy:29, legLen:48, eyeSc:0.92, earSc:1.14, tailSc:1.10, until:null},
+];
+/* Growth thresholds above are scaled so a kitten needs ~10x and a teen ~20x
+   more growth than before to advance. Adults are full-grown. */
+const FOODS=[
+  {id:"kibble",name:"Crunchy Kibble",emoji:"🥣",cost:6,tummy:22,xp:12,mood:2},
+  {id:"treat",name:"Yummy Treats",emoji:"🍪",cost:5,tummy:8,xp:5,mood:14},
+  {id:"milk",name:"Warm Milk",emoji:"🥛",cost:10,tummy:18,xp:10,mood:6,energy:16},
+  {id:"fish",name:"Fresh Fish",emoji:"🐟",cost:18,tummy:42,xp:30,mood:8},
+  {id:"feast",name:"Royal Feast",emoji:"🍱",cost:48,tummy:80,xp:75,mood:18},
+  {id:"medicine",name:"Kitty Medicine",emoji:"🩹",cost:35,tummy:5,xp:0,mood:10,energy:10,hygiene:15,cure:true},
+];
+const TOYS=[
+  {id:"yarn",name:"Yarn Ball",emoji:"🧶",cost:28,mood:16,energy:-6,xp:4},
+  {id:"box",name:"Cardboard Box",emoji:"📦",cost:40,mood:20,energy:10,xp:6},
+  {id:"feather",name:"Feather Wand",emoji:"🪶",cost:55,mood:24,energy:-10,xp:8},
+  {id:"mouse",name:"Catnip Mouse",emoji:"🐭",cost:80,mood:30,energy:-4,xp:10},
+  {id:"laser",name:"Laser Pointer",emoji:"🔴",cost:130,mood:38,energy:-16,xp:14},
+];
+const COMFORT=[
+  {id:"post",name:"Scratching Post",emoji:"🪵",cost:70,desc:"Cats scratch this instead of your couch — tap it for a mood boost."},
+  {id:"bed",name:"Cozy Cat Bed",emoji:"🛏️",cost:90,desc:"Sleeping here restores energy & mood much faster."},
+  {id:"blanket",name:"Warm Blanket",emoji:"🧺",cost:55,desc:"Energy drains more slowly in this room."},
+  {id:"tree",name:"Cat Tower",emoji:"🗼",cost:170,desc:"A climbing tower. Mood drains more slowly in this room."},
+  {id:"perch",name:"Window Perch",emoji:"🪟",cost:110,desc:"Birdwatching! Slowly tops up mood over time."},
+  {id:"fountain",name:"Water Fountain",emoji:"⛲",cost:95,desc:"Fresh water — tummy drains a little more slowly."},
+  {id:"hammock",name:"Hammock",emoji:"🛋️",cost:130,desc:"A comfy lounge — slowly tops up energy over time."},
+];
+/* Personality traits — each cat gets one. They subtly change behaviour. */
+const TRAITS={
+  none:        {label:"Easy-going", emoji:"🐾", desc:"No special quirks — a calm, balanced cat."},
+  scratchy:    {label:"Scratchy",   emoji:"🪵", desc:"Loves to scratch — wears the couch faster and scratches more often."},
+  picky:       {label:"Picky",      emoji:"🙄", desc:"Fussy eater — may throw up if fed cheap food (kibble or treats)."},
+  helpful:     {label:"Helpful",    emoji:"😇", desc:"A little helper — earns extra coins while you're away."},
+  naughty:     {label:"Naughty",    emoji:"😼", desc:"A troublemaker — plays rougher and makes a mess more often."},
+  accident:    {label:"Accident-prone",emoji:"🙀",desc:"Bless them — poos and throws up more often than other cats."},
+};
+const TRAIT_KEYS=Object.keys(TRAITS);
+function traitOf(c){return (c&&TRAITS[c.trait])?c.trait:"none";}
+const ZONES={
+  head:{name:"head",pts:2,mood:6,cd:900,react:["purrrr 💗","head pats!","*happy purr*"]},
+  chin:{name:"chin",pts:3,mood:8,cd:1000,react:["mrrrp!","chin scritches~","*melts* 😻"]},
+  tummy:{name:"tummy",pts:3,mood:7,cd:1100,react:["prrr~","tummy time!","*kicky kicky*"],ticklish:true},
+  paws:{name:"toe beans",pts:2,mood:5,cd:1200,react:["mew!","beans! 🫘","*flexes paws*"]},
+};
+const ROOM_KINDS={
+  starter:{label:"Cozy Room",cap:3,cost:0},
+  small:{label:"Small Room",cap:2,cost:120},
+  medium:{label:"Medium Room",cap:4,cost:260},
+  large:{label:"Large Room",cap:6,cost:480},
+};
+const BREED_TIME=3600000;   // 1 hour
+const LITTER_COST=45;
+/* Per-tick stat decay (tick = 3.5s). Tuned slow & long-term so a full bar
+   lasts the better part of a day. Energy(sleep), hygiene and mood decay at
+   similar gentle speeds; tummy a touch slower. Realistic, low-maintenance pace. */
+const DECAY={tummy:0.004, energy:0.005, mood:0.005, hygiene:0.005, tummySleep:0.002};
+const POTTY_INTERVAL=4*3600000;   // a cat needs the litter box roughly every ~4 hours
+/* Auto-feeder: L1 holds 8 feeds, +2 per level, L15 holds 38. Each feed gives 30 food.
+   Filling costs 6 coins per feed. Cheap to buy & upgrade. */
+const FEEDER_BUY_COST=35;
+const FEEDER_FEED_FOOD=30;
+const FEEDER_FILL_COST=6;     // coins per single feed added
+const FEEDER_MAX_LEVEL=15;
+const feederUpCost=lvl=>8+lvl*4;                       // cheap upgrades
+const feederCap=lvl=>8+(lvl-1)*2+(lvl>=FEEDER_MAX_LEVEL?2:0); // 8 @L1 … 38 @L15
+const adoptCost=n=>Math.round(40+18*(n-1));
+const clamp=(v,a=0,b=100)=>Math.max(a,Math.min(b,v));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const uid=p=>p+Math.random().toString(36).slice(2,8);
+
+/* furniture positions stored per room as {x:0..1 across width, b:px from bottom} */
+function furniPos(r,key,def){r.furni=r.furni||{};if(!r.furni[key])r.furni[key]={x:def.x,b:def.b};return r.furni[key];}
+function furniTarget(r,key,def){const p=furniPos(r,key,def);return {tx:clamp(p.x,0.08,0.92),ty:Math.max(0.12,Math.min(0.85,1-(p.b-8)/90))};}
+function roomLitterAvg(r){if(!r.litters||!r.litters.length)return 0;return r.litters.reduce((s,b)=>s+b.clean,0)/r.litters.length;}
+function bestLitter(r){if(!r.litters||!r.litters.length)return null;return r.litters.slice().sort((a,b)=>b.clean-a.clean)[0];}
+function littersNeeded(r){return catsIn(r.id).filter(c=>stageIndex(c)>=1).length;}
+
+/* ============================ STATE ============================ */
+const SAVE_KEY="kittencafe_save_v3";
+let state=null,sound=true,cooldowns={};
+let saveTimer=null,lastFrame=0;
+let selF=null,selM=null;
+const msgQueue=[]; let msgBusy=false;
+
+function newCat(breedKey,opts){
+  opts=opts||{};
+  const rid=opts.roomId||(state&&state.activeRoom);
+  return {id:uid("c"),name:opts.name||pick(NAMES),breed:breedKey,sex:opts.sex||(Math.random()<0.5?"female":"male"),
+    growth:opts.growth||0,tummy:70,mood:75,energy:80,hygiene:80,
+    sleeping:false,sick:false,neglect:0,danger:0,fav:pick(Object.keys(ZONES)),loveUntil:0,
+    trait:opts.trait||pick(TRAIT_KEYS),
+    roomId:rid,homeRoom:rid,closeDoor:false,
+    x:0.3+Math.random()*0.4,y:0.3+Math.random()*0.5,tx:0.5,ty:0.5,face:1,
+    behavior:"wander",behaviorUntil:0,hop:0,lastPottyAt:Date.now()-Math.random()*POTTY_INTERVAL,lastPlayAt:0};
+}
+function newRoom(kind){const k=ROOM_KINDS[kind];return {id:uid("r"),kind,name:k.label,couch:100,litters:[{id:uid("lit"),clean:100}],poops:[],comfort:[],furni:{},feeder:null};}
+function makeShelterCat(){
+  const owned=state?state.cats.map(c=>c.breed):[];
+  const unowned=BREED_ORDER.filter(b=>!owned.includes(b));
+  const breed=(unowned.length&&Math.random()<0.7)?pick(unowned):pick(BREED_ORDER);
+  const base=adoptCost(state?state.adopted:1);
+  return {sid:uid("s"),breed,sex:Math.random()<0.5?"female":"male",name:pick(NAMES),cost:Math.round(base*(0.8+Math.random()*0.5))};
+}
+function generateShelter(){state.shelter=[];for(let i=0;i<4;i++)state.shelter.push(makeShelterCat());}
+function freshState(){
+  const room=newRoom("starter");
+  const s={pts:30,cats:[],rooms:[room],activeRoom:room.id,selected:null,toys:[],adopted:1,shelter:[],breeding:null,firstRun:true,earnWindowStart:Date.now(),earnedThisHour:0};
+  state=s;
+  const c=newCat("cream",{name:"Mochi",roomId:room.id}); s.cats=[c]; s.selected=c.id;
+  generateShelter();return s;
+}
+function getRoom(id){return state.rooms.find(r=>r.id===id);}
+function activeRoom(){return getRoom(state.activeRoom)||state.rooms[0];}
+function catsIn(rid){return state.cats.filter(c=>c.roomId===rid);}
+function roomCap(r){return ROOM_KINDS[r.kind].cap;}
+/* Capacity counts a room's RESIDENTS (cats whose home room it is), not visitors.
+   So a 3-cat room can briefly hold 4 cats if one wandered in from elsewhere. */
+function residentsOf(rid){return state.cats.filter(c=>(c.homeRoom||c.roomId)===rid);}
+function roomHasResidentSpace(r){return residentsOf(r.id).length<roomCap(r);}
+function selectedCat(){return state.cats.find(c=>c.id===state.selected)||catsIn(state.activeRoom)[0]||state.cats[0];}
+function stageIndex(c){let i=0;for(const s of STAGES){if(s.until===null||c.growth<s.until)return i;i++;}return STAGES.length-1;}
+function wellbeing(c){return (c.tummy+c.mood+c.energy+c.hygiene)/4;}
+function healthFactor(c){return 0.35+0.65*(wellbeing(c)/100);}
+const sexSym=s=>s==="female"?'<span class="sex-f">♀</span>':'<span class="sex-m">♂</span>';
+const sexWord=s=>s==="female"?"Female":"Male";
+function isBreeding(c){return !!(state&&state.breeding&&(state.breeding.f===c.id||state.breeding.m===c.id));}
+function hasRoomSpace(){return state.rooms.some(r=>roomHasResidentSpace(r));}
+function canBreed(c){return stageIndex(c)>=1&&!c.sick&&!isBreeding(c)&&c.tummy>80&&c.energy>80;}
+
+/* ============================ STORAGE ============================ */
+async function loadGame(){try{const r=await window.storage.get(SAVE_KEY);if(r&&r.value)return JSON.parse(r.value);}catch(e){}return null;}
+function saveGame(){clearTimeout(saveTimer);saveTimer=setTimeout(async()=>{try{state.lastSeen=Date.now();await window.storage.set(SAVE_KEY,JSON.stringify(state));}catch(e){}},600);}
+
+/* ============================ SOUND ============================ */
+let ac=null;
+function beep(type){
+  if(!sound)return;
+  try{
+    ac=ac||new (window.AudioContext||window.webkitAudioContext)();if(ac.state==="suspended")ac.resume();
+    const o=ac.createOscillator(),g=ac.createGain();o.connect(g);g.connect(ac.destination);const t=ac.currentTime;
+    const F={pet:[520,720,"triangle"],coin:[880,1180,"square"],eat:[300,180,"sine"],play:[660,990,"triangle"],grow:[440,880,"sine"],yawn:[360,220,"sine"],alarm:[420,300,"square"]}[type]||[440,440,"sine"];
+    o.type=F[2];o.frequency.setValueAtTime(F[0],t);o.frequency.exponentialRampToValueAtTime(F[1],t+.16);
+    g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.11,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+.32);
+    o.start(t);o.stop(t+.34);
+  }catch(e){}
+}
+
+/* ============================ MESSAGE QUEUE ============================ */
+function pushMsg(text,urgent){
+  if(msgQueue.length&&msgQueue[msgQueue.length-1].text===text)return;
+  msgQueue.push({text,urgent});if(!msgBusy)nextMsg();
+}
+function nextMsg(){
+  if(!msgQueue.length){msgBusy=false;return;}
+  msgBusy=true;const m=msgQueue.shift();
+  const t=document.getElementById("toast");t.textContent=m.text;t.classList.add("show");if(m.urgent)beep("alarm");
+  setTimeout(()=>{t.classList.remove("show");setTimeout(nextMsg,250);},2100);
+}
+function toast(text){pushMsg(text,false);}
+
+/* ============================ CAT SVG ============================ */
+function moodOf(c){
+  if(c.sleeping)return "sleepy";
+  if(isBreeding(c)||Date.now()<c.loveUntil)return "love";
+  if(c.energy<22)return "tired";
+  if(wellbeing(c)<30||c.mood<28)return "sad";
+  if(c.sick)return "sad";
+  if(c.mood>=78)return "happy";
+  return "content";
+}
+/* Side-view eye drawn on the head (head faces right, toward +x) */
+function eyeSVG(ex,ey,mood,col,sc){
+  sc=sc||1;
+  if(mood==="sleepy"||mood==="tired")return `<path d="M ${ex-6*sc} ${ey} q ${6*sc} ${5*sc} ${12*sc} 0" stroke="${col}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`;
+  if(mood==="happy")return `<path d="M ${ex-6*sc} ${ey+2} q ${6*sc} ${-9*sc} ${12*sc} 0" stroke="${col}" stroke-width="2.8" fill="none" stroke-linecap="round"/>`;
+  if(mood==="love")return `<path d="M ${ex} ${ey+5*sc} C ${ex-6*sc} ${ey-2*sc}, ${ex-1*sc} ${ey-6*sc}, ${ex} ${ey-2*sc} C ${ex+1*sc} ${ey-6*sc}, ${ex+6*sc} ${ey-2*sc}, ${ex} ${ey+5*sc} Z" fill="#ED5A78"/>`;
+  if(mood==="sad")return `<ellipse cx="${ex}" cy="${ey+1}" rx="${3.4*sc}" ry="${4.4*sc}" fill="${col}"/><path d="M ${ex-7*sc} ${ey-6*sc} l ${9*sc} 3" stroke="${col}" stroke-width="2" stroke-linecap="round"/>`;
+  // open eye: iris + highlight + slit pupil hint
+  return `<ellipse cx="${ex}" cy="${ey}" rx="${4.2*sc}" ry="${5.4*sc}" fill="${col}"/><circle cx="${ex-1.5*sc}" cy="${ey-1.9*sc}" r="${1.6*sc}" fill="#fff"/>`;
+}
+function visualSig(c){const si=stageIndex(c);return [si,moodOf(c),c.tummy<30?"H":"",c.hygiene<35?"D":"",c.sick?"S":"",c.breed,c.face].join("");}
+/* A real four-legged cat seen from the side. Faces +x (right) by default; flipped via c.face.
+   viewBox 200x180. Floor at y=168. Head sits on the right, haunches/tail on the left. */
+function buildCatSVG(c){
+  const si=stageIndex(c),S=STAGES[si],B=BREEDS[c.breed];
+  const mood=moodOf(c), hungry=c.tummy<30 && mood!=="sleepy", dirty=c.hygiene<35;
+  const fur=B.fur,shade=B.shade,belly=B.belly,ink=(B.tux||B.points)?"#2c2c33":"#3f3128",nose=B.nose;
+  const floorY=168;
+  const thin=hungry?0.9:1;
+  // ---- proportions ----
+  const hR=S.headR;
+  const bRx=S.bodyRx*thin, bRy=S.bodyRy;
+  // body trunk sits so its bottom is a little above the floor; legs bridge the gap
+  const by=floorY-S.legLen-bRy*0.55;          // body center Y
+  const bx=84;                                 // body center X (left-of-center)
+  // head: to the right of and slightly above the body, overlapping the chest
+  const hx=bx+bRx*0.78+hR*0.35;
+  const hy=by-bRy*0.55-hR*0.30;                // head perched above shoulders
+  // ---- legs (drop from under the trunk to the floor) ----
+  const legTop=by+bRy*0.35;
+  const lw=Math.max(8,bRx*0.20);
+  function leg(cls,x,col,back){
+    const top=legTop+(back?2:0);
+    return `<g class="${cls}"><rect x="${x-lw/2}" y="${top}" width="${lw}" height="${floorY-top}" rx="${lw/2}" fill="${col}"/>`+
+      `<ellipse cx="${x}" cy="${floorY}" rx="${lw*0.62}" ry="4" fill="${col}" stroke="${shade}" stroke-width="1" stroke-opacity=".3"/></g>`;
+  }
+  // x positions: back legs near haunch (left), front legs near chest (right)
+  const backX=bx-bRx*0.52, frontX=bx+bRx*0.50;
+  const legBackFar  = leg("legBL",backX-lw*0.7, shade, true);
+  const legFrontFar = leg("legFR",frontX-lw*0.7,shade, true);
+  const legBackNear = leg("legBR",backX, fur, false);
+  const legFrontNear= leg("legFL",frontX,fur, false);
+  // ---- tail (sweeps up from the left haunch) ----
+  const ts=S.tailSc, txs=bx-bRx*0.88, tys=by+bRy*0.2;
+  const tail=`<path class="tail" d="M ${txs} ${tys}
+     C ${txs-22*ts} ${tys+2}, ${txs-34*ts} ${tys-20*ts}, ${txs-28*ts} ${tys-42*ts}
+     C ${txs-24*ts} ${tys-56*ts}, ${txs-8*ts} ${tys-56*ts}, ${txs-9*ts} ${tys-40*ts}
+     C ${txs-11*ts} ${tys-28*ts}, ${txs-9*ts} ${tys-14*ts}, ${txs+5} ${tys-3} Z" fill="${shade}"/>`;
+  // ---- body trunk + haunch + chest bridge to head ----
+  const body=`<ellipse cx="${bx}" cy="${by}" rx="${bRx}" ry="${bRy}" fill="${fur}"/>`+
+    `<ellipse cx="${bx-bRx*0.6}" cy="${by+bRy*0.05}" rx="${bRx*0.42}" ry="${bRy*0.95}" fill="${fur}"/>`+ /* haunch */
+    `<path d="M ${bx+bRx*0.35} ${by-bRy*0.7} Q ${hx-hR*0.5} ${hy+hR*0.2}, ${hx-hR*0.2} ${hy+hR*0.85}
+        L ${hx-hR*0.2} ${by+bRy*0.4} Q ${bx+bRx*0.5} ${by+bRy*0.9}, ${bx+bRx*0.3} ${by+bRy*0.2} Z" fill="${fur}"/>`; /* chest */
+  const bellyPatch=`<ellipse cx="${bx+bRx*0.05}" cy="${by+bRy*0.5}" rx="${bRx*0.62}" ry="${bRy*0.5}" fill="${belly}"/>`;
+  // ---- ears (triangular, on top of head) ----
+  const es=S.earSc;
+  const earBackO=`M ${hx-hR*0.62} ${hy-hR*0.5} L ${hx-hR*0.98*es} ${hy-hR*1.46*es} L ${hx+hR*0.02} ${hy-hR*0.92} Z`;
+  const earFrontO=`M ${hx+hR*0.28} ${hy-hR*0.72} L ${hx+hR*0.64*es} ${hy-hR*1.5*es} L ${hx+hR*0.92} ${hy-hR*0.5} Z`;
+  const earBackI=`M ${hx-hR*0.55} ${hy-hR*0.55} L ${hx-hR*0.8*es} ${hy-hR*1.2*es} L ${hx-hR*0.12} ${hy-hR*0.86} Z`;
+  const earFrontI=`M ${hx+hR*0.36} ${hy-hR*0.7} L ${hx+hR*0.6*es} ${hy-hR*1.24*es} L ${hx+hR*0.82} ${hy-hR*0.52} Z`;
+  // ---- head + muzzle + nose ----
+  const head=`<circle cx="${hx}" cy="${hy}" r="${hR}" fill="${fur}"/>`;
+  const muzzle=`<ellipse cx="${hx+hR*0.62}" cy="${hy+hR*0.42}" rx="${hR*0.52}" ry="${hR*0.42}" fill="${belly}"/>`;
+  const noseEl=`<path d="M ${hx+hR*1.02} ${hy+hR*0.2} l 5.5 1.8 l -2.6 4.6 Z" fill="${nose}"/>`+
+    `<path d="M ${hx+hR*1.0} ${hy+hR*0.55} q ${hR*0.18} ${hR*0.22} ${hR*0.4} 0" stroke="${nose}" stroke-width="1.4" fill="none" stroke-linecap="round" opacity=".7"/>`;
+  const eyeX=hx+hR*0.30, eyeY=hy-hR*0.02;
+  const whisk=`<g stroke="${shade}" stroke-width="1.2" stroke-linecap="round" opacity=".5"><path d="M ${hx+hR*0.78} ${hy+hR*0.42} q ${hR*0.7} -2 ${hR*1.2} -5 M ${hx+hR*0.78} ${hy+hR*0.58} q ${hR*0.7} 2 ${hR*1.2} 3"/></g>`;
+  // ---- markings ----
+  let marks="";
+  if(B.stripes){marks=`<g stroke="${shade}" stroke-width="${3.4}" fill="none" opacity=".4" stroke-linecap="round">
+      <path d="M ${bx-bRx*0.3} ${by-bRy*0.7} q 3 ${bRy} 0 ${bRy*1.5}"/>
+      <path d="M ${bx} ${by-bRy*0.8} q 3 ${bRy} 0 ${bRy*1.6}"/>
+      <path d="M ${bx+bRx*0.3} ${by-bRy*0.7} q 3 ${bRy} 0 ${bRy*1.5}"/></g>
+      <g fill="${shade}" opacity=".5"><ellipse cx="${hx-hR*0.1}" cy="${hy-hR*0.55}" rx="2.6" ry="6"/><ellipse cx="${hx-hR*0.5}" cy="${hy-hR*0.42}" rx="2.2" ry="5"/></g>`;}
+  if(B.calico){marks=`<ellipse cx="${bx+bRx*0.35}" cy="${by-bRy*0.25}" rx="${bRx*0.4}" ry="${bRy*0.6}" fill="${shade}" opacity=".6"/>
+      <ellipse cx="${bx-bRx*0.45}" cy="${by+bRy*0.3}" rx="${bRx*0.3}" ry="${bRy*0.5}" fill="#4a4038" opacity=".35"/>
+      <path d="M ${hx-hR*0.6} ${hy-hR*0.3} a ${hR} ${hR} 0 0 1 ${hR*0.8} ${-hR*0.4}" fill="${shade}" opacity=".65"/>`;}
+  if(B.points){marks=`<ellipse cx="${hx+hR*0.5}" cy="${hy+hR*0.5}" rx="${hR*0.7}" ry="${hR*0.5}" fill="${shade}" opacity=".45"/>
+      <ellipse cx="${frontX}" cy="${floorY-4}" rx="${lw*0.8}" ry="5" fill="${shade}" opacity=".4"/>`;}
+  const dirt=dirty?`<g fill="#7a6a55" opacity=".4"><ellipse cx="${bx-bRx*0.2}" cy="${by+bRy*0.3}" rx="5" ry="3.5"/><ellipse cx="${bx+bRx*0.2}" cy="${by-bRy*0.1}" rx="4.5" ry="3"/></g>`:"";
+  const ribs=hungry?`<g stroke="${shade}" stroke-width="1.2" opacity=".3" stroke-linecap="round"><path d="M ${bx+bRx*0.25} ${by-bRy*0.1} v ${bRy*0.5}"/><path d="M ${bx+bRx*0.42} ${by} v ${bRy*0.45}"/></g>`:"";
+  const cheek=(mood==="content"||mood==="happy"||mood==="love")?`<ellipse cx="${hx+hR*0.46}" cy="${hy+hR*0.55}" rx="${hR*0.22}" ry="${hR*0.14}" fill="#F6A8B8" opacity=".5"/>`:"";
+  // ---- hotspots (cat-local coords) ----
+  const HS=[["head",hx,hy,hR*1.05,hR*1.05],["chin",hx+hR*0.55,hy+hR*0.7,hR*0.55,hR*0.4],["tummy",bx,by+bRy*0.3,bRx*0.85,bRy*0.8],["paws",(backX+frontX)/2,floorY-6,bRx*0.9,12]];
+  const hotspots=HS.map(([id,x,y,rx,ry])=>`<ellipse class="zone" data-zone="${id}" cx="${x}" cy="${y}" rx="${rx}" ry="${ry}"/>`).join("");
+  const flip=c.face<0?`transform="scale(-1,1) translate(-200,0)"`:"";
+  return `<svg viewBox="0 0 200 180" width="${(S.px*200/180).toFixed(1)}" height="${S.px}" xmlns="http://www.w3.org/2000/svg"><g class="catG"><g class="catFlip" ${flip}>
+    ${tail}
+    ${legBackFar}${legFrontFar}
+    ${body}${bellyPatch}
+    ${legBackNear}${legFrontNear}
+    ${marks}${ribs}${dirt}
+    <path d="${earBackO}" fill="${B.points?shade:fur}"/><path d="${earFrontO}" fill="${B.points?shade:fur}"/>
+    <path d="${earBackI}" fill="${B.ear}"/><path d="${earFrontI}" fill="${B.ear}"/>
+    ${head}${muzzle}
+    ${cheek}${whisk}
+    ${eyeSVG(eyeX,eyeY,mood,ink,S.eyeSc)}
+    ${noseEl}
+    ${hotspots}
+  </g></g></svg>`;
+}
+
+/* ============================ ROOM / SPRITE RENDER ============================ */
+function renderRoomBar(){
+  const bar=document.getElementById("roomBar");bar.innerHTML="";
+  state.rooms.forEach(r=>{
+    const el=document.createElement("div");el.className="room-chip"+(r.id===state.activeRoom?" active":"");
+    const danger=catsIn(r.id).some(c=>c.danger>=2);
+    el.innerHTML=`${danger?"🆘 ":""}${r.name} <span class="cnt">${catsIn(r.id).length}/${roomCap(r)}</span>`;
+    el.onclick=()=>switchRoom(r.id);bar.appendChild(el);
+  });
+  const add=document.createElement("div");add.className="room-chip addroom";add.innerHTML="＋ Room";add.onclick=()=>openSheet("shop","rooms");bar.appendChild(add);
+}
+function makeDraggable(el,pos,onClick){
+  let sx,sy,moved=false,dragging=false;
+  el.addEventListener("pointerdown",e=>{dragging=true;moved=false;sx=e.clientX;sy=e.clientY;try{el.setPointerCapture(e.pointerId);}catch(_){}el.classList.add("dragging");e.stopPropagation();});
+  el.addEventListener("pointermove",e=>{if(!dragging)return;if(Math.abs(e.clientX-sx)>4||Math.abs(e.clientY-sy)>4)moved=true;
+    if(moved){const rect=document.getElementById("stage").getBoundingClientRect();
+      pos.x=Math.max(0.05,Math.min(0.95,(e.clientX-rect.left)/rect.width));
+      pos.b=Math.max(4,Math.min(rect.height*0.30,rect.bottom-e.clientY));
+      el.style.left=(pos.x*100)+"%";el.style.bottom=pos.b+"px";el.style.zIndex=String(1+Math.round((140-pos.b)/14));}});
+  el.addEventListener("pointerup",e=>{if(!dragging)return;dragging=false;el.classList.remove("dragging");if(moved)saveGame();else if(onClick)onClick();});
+}
+function renderFurni(){
+  const r=activeRoom(),L=document.getElementById("furniLayer");L.innerHTML="";
+  const place=(el,pos)=>{el.style.position="absolute";el.style.top="auto";el.style.right="auto";el.style.left=(pos.x*100)+"%";el.style.bottom=pos.b+"px";el.style.transform="translateX(-50%)";el.style.zIndex=String(1+Math.round((140-pos.b)/14));L.appendChild(el);};
+  // couch
+  const couchPos=furniPos(r,"couch",{x:0.13,b:16});
+  const couch=document.createElement("div");couch.className="furni couch";
+  couch.innerHTML=`<div class="back"></div><div class="arm l"></div><div class="arm r"></div><div class="seat"></div><div class="scratch" style="opacity:${((100-r.couch)/100).toFixed(2)}"></div>`;
+  makeDraggable(couch,couchPos,null);place(couch,couchPos);
+  // litter boxes (one per box, each clickable to clean, each draggable)
+  r.litters.forEach((box,i)=>{
+    const pos=furniPos(r,box.id,{x:0.85-i*0.13,b:14});
+    const el=document.createElement("div");el.className="furni litter";
+    el.innerHTML=`<div class="label">${box.clean<35?"🧹 scoop!":""}</div><div class="tray"></div><div class="rim"></div><div class="sand" style="background:${box.clean<35?"#CBB791":"#E8DCC2"}"></div>`;
+    const n=Math.min(4,Math.floor((100-box.clean)/22));for(let k=0;k<n;k++){const cl=document.createElement("div");cl.className="clump";const sz=6+Math.random()*3;cl.style.width=cl.style.height=sz+"px";cl.style.left=(9+k*11)+"px";cl.style.bottom=(6+Math.random()*3)+"px";el.appendChild(cl);}
+    makeDraggable(el,pos,()=>cleanLitter(box.id));place(el,pos);
+  });
+  // comfort items
+  const CF=[["post",`<div class="base"></div><div class="pole"></div><div class="wrap"></div><div class="ball">🧶</div>`,{x:0.30,b:18},scratchPostAction],
+    ["bed","",{x:0.5,b:8},null],["perch","🪟",{x:0.85,b:120},null],["fountain","⛲",{x:0.62,b:16},null],
+    ["hammock","🛋️",{x:0.14,b:120},null],["tree","🗼",{x:0.72,b:16},null],["blanket","🧺",{x:0.42,b:12},null]];
+  CF.forEach(([id,html,def,onClick])=>{if(!r.comfort.includes(id))return;const pos=furniPos(r,id,def);const el=document.createElement("div");el.className="furni "+id;el.innerHTML=html;makeDraggable(el,pos,onClick);place(el,pos);});
+  // auto-feeder
+  if(r.feeder){
+    const pos=furniPos(r,"feeder",{x:0.5,b:14});
+    const cap=feederCap(r.feeder.level),feeds=r.feeder.feeds;
+    const el=document.createElement("div");el.className="furni feeder";
+    el.innerHTML=`<div class="lvl">Lv${r.feeder.level} · ${feeds}/${cap}</div><div class="hopper"></div><div class="kib" style="opacity:${feeds>0?1:0.25}"></div><div class="bowl"></div><div class="gauge"><span style="width:${Math.round(feeds/cap*100)}%"></span></div>`;
+    makeDraggable(el,pos,()=>fillFeeder());place(el,pos);
+  }
+}
+function renderNameStack(){
+  const el=document.getElementById("nameStack");if(!el)return;el.innerHTML="";
+  catsIn(state.activeRoom).forEach(c=>{
+    const chip=document.createElement("div");chip.className="nameChip"+(c.id===state.selected?" sel":"");
+    const a=c.danger>=2?"🆘 ":(c.sick?"🤒 ":(isBreeding(c)?"💞 ":""));
+    chip.textContent=`${a}${c.name} ${c.sex==="female"?"♀":"♂"}`;
+    chip.onclick=()=>{selectCat(c.id);renderNameStack();};
+    el.appendChild(chip);
+  });
+}
+function renderPoops(){
+  const r=activeRoom(),pl=document.getElementById("poopLayer");pl.innerHTML="";
+  r.poops.forEach(p=>{const d=document.createElement("div");d.className="poop"+(p.type==="spew"?" spew":"");d.style.left=p.left+"%";d.style.bottom=p.bottom+"px";
+    d.innerHTML=(p.type==="spew"?'🤮':'💩')+'<span class="stink">~</span>';d.onclick=(e)=>{e.stopPropagation();cleanPoop(p.id,e);};pl.appendChild(d);});
+}
+let spriteEls={};
+function syncSprites(){
+  const layer=document.getElementById("catsLayer");if(!layer)return;
+  const here=catsIn(state.activeRoom);const ids=new Set(here.map(c=>c.id));
+  // remove stale
+  for(const id in spriteEls){if(!ids.has(id)){spriteEls[id].remove();delete spriteEls[id];}}
+  here.forEach(c=>{
+    let el=spriteEls[c.id];
+    if(!el){
+      el=document.createElement("div");el.className="catSprite";el.dataset.cat=c.id;
+      el.innerHTML=`<div class="alert"></div><div class="zzz">z z</div><div class="tag"></div><div class="svgholder"></div><div class="ring"></div>`;
+      layer.appendChild(el);spriteEls[c.id]=el;c._sig=null;
+    }
+    const sig=visualSig(c);
+    if(c._sig!==sig){c._sig=sig;el.querySelector(".svgholder").innerHTML=buildCatSVG(c);}
+    el.classList.toggle("selected",c.id===state.selected);
+    el.classList.toggle("sick",c.sick);
+    const tag=el.querySelector(".tag");const newtag=`${c.name} ${c.sex==="female"?"♀":"♂"}`;if(tag.dataset.t!==newtag){tag.dataset.t=newtag;tag.innerHTML=newtag;}
+    const al=el.querySelector(".alert");const a=c.danger>=2?"🆘":(c.sick?"🤒":(isBreeding(c)?"💞":(c.tummy<25||c.hygiene<25||c.mood<25?"❕":"")));if(al.dataset.a!==a){al.dataset.a=a;al.textContent=a;}
+  });
+}
+function positionSprites(){
+  const stage=document.getElementById("stage");if(!stage)return;
+  const W=stage.clientWidth;
+  const fl=W*0.10,fw=W*0.80, baseBottom=14, depth=60, now=Date.now();
+  catsIn(state.activeRoom).forEach(c=>{
+    const el=spriteEls[c.id];if(!el)return;
+    const si=stageIndex(c),px=STAGES[si].px;
+    const scale=0.82+c.y*0.001;
+    const xpx=fl+c.x*fw, bpx=baseBottom+(1-c.y)*depth;
+    const hop=c.hop?Math.abs(Math.sin(c.hop))*4:0;
+    el.style.left="0";el.style.bottom="0";
+    el.style.transform=`translate(${xpx-px*0.556}px, ${-(bpx+hop)}px) scale(${scale})`;
+    el.style.zIndex=String((100-Math.round(c.y*40))+(c.id===state.selected?60:0));
+    const moving=!c.sleeping && c.hop>0.1 && !(c.freezeUntil&&now<c.freezeUntil);
+    el.classList.toggle("walking",moving);
+    el.classList.toggle("sleeping",!!c.sleeping);
+    el.classList.toggle("breeding",isBreeding(c)&&!c.sleeping);
+  });
+}
+function spriteAnim(c,cls,ms){const el=spriteEls[c.id];if(!el)return;const h=el.querySelector(".catG");if(!h)return;h.classList.remove(cls);void h.offsetWidth;h.classList.add(cls);setTimeout(()=>{if(h)h.classList.remove(cls);},ms||1000);}
+
+/* ============================ HUD RENDER ============================ */
+function renderHUD(){
+  document.getElementById("pts").textContent=state.pts;
+  const c=selectedCat();if(!c)return;
+  document.getElementById("who").innerHTML=`${c.name} ${sexSym(c.sex)}`;
+  const si=stageIndex(c);
+  document.getElementById("stg").textContent=c.sick?"Sick 🤒":STAGES[si].label;
+  setBar("tummy",c.tummy);setBar("mood",c.mood);setBar("energy",c.energy);setBar("hygiene",c.hygiene);
+  const prev=si===0?0:STAGES[si-1].until,next=STAGES[si].until;
+  setBar("growth",next===null?100:clamp(Math.round((c.growth-prev)/(next-prev)*100)),next===null?"MAX":null);
+  document.getElementById("sleepLbl").textContent=c.sleeping?"Wake":"Sleep";
+  document.getElementById("sleepEmoji").textContent=c.sleeping?"☀️":"😴";
+  // danger banner: list endangered cats anywhere
+  const endangered=state.cats.filter(x=>x.danger>=2);
+  const db=document.getElementById("dangerBanner");
+  if(endangered.length){const worst=endangered.slice().sort((a,b)=>b.danger-a.danger)[0];
+    db.textContent=(worst.danger>=6?"⚠️ ":"💔 ")+endangered.map(x=>x.name).join(", ")+(endangered.length>1?" need help!":" needs help!");db.style.display="block";}
+  else db.style.display="none";
+}
+function setBar(k,v,label){const b=document.getElementById("bar-"+k);b.style.width=clamp(v)+"%";document.getElementById("pct-"+k).textContent=label||Math.round(clamp(v))+"%";}
+function renderAll(){renderRoomBar();renderFurni();renderPoops();syncSprites();renderNameStack();renderHUD();}
+
+/* ============================ EFFECTS ============================ */
+function fx(xpx,ypx,txt,color){
+  const stage=document.getElementById("stage"),r=stage.getBoundingClientRect();
+  const el=document.createElement("div");el.className="fx";el.textContent=txt;el.style.left=(xpx-r.left)+"px";el.style.top=(ypx-r.top)+"px";el.style.color=color||"#fff";el.style.animation="floatup 1s ease-out forwards";stage.appendChild(el);setTimeout(()=>el.remove(),1000);
+}
+function fxAtCat(c,txt,color){const el=spriteEls[c.id];if(!el)return;const r=el.getBoundingClientRect();fx(r.left+r.width/2,r.top,txt,color);}
+let emoteTimer=null;
+function emote(txt){const e=document.getElementById("emote");e.textContent=txt;e.classList.add("show");clearTimeout(emoteTimer);emoteTimer=setTimeout(()=>e.classList.remove("show"),1400);}
+function bumpWallet(){const w=document.getElementById("wallet");w.classList.add("bump");setTimeout(()=>w.classList.remove("bump"),160);}
+const EARN_CAP_PER_HOUR=30;
+/* Grant active-play coins, capped at 30 per rolling hour. Returns the amount actually granted. */
+function earnCoins(amount){
+  if(amount<=0)return 0;
+  const now=Date.now();
+  if(!state.earnWindowStart||now-state.earnWindowStart>=3600000){state.earnWindowStart=now;state.earnedThisHour=0;}
+  const remaining=Math.max(0,EARN_CAP_PER_HOUR-(state.earnedThisHour||0));
+  const grant=Math.min(amount,remaining);
+  if(grant>0){state.pts+=grant;state.earnedThisHour=(state.earnedThisHour||0)+grant;}
+  return grant;
+}
+
+/* ============================ INTERACTIONS ============================ */
+function selectCat(id){state.selected=id;const c=state.cats.find(x=>x.id===id);if(c){c.freezeUntil=Date.now()+5000;}renderHUD();syncSprites();saveGame();}
+function petCat(c,zoneId,clientX,clientY){
+  if(c.sleeping){c.sleeping=false;c.behavior="wander";c.behaviorUntil=0;emote("*yawn* you woke me!");beep("yawn");c._sig=null;renderHUD();syncSprites();saveGame();return;}
+  const key=c.id+zoneId,now=Date.now(),Z=ZONES[zoneId];if(!Z)return;
+  if(cooldowns[key]&&now<cooldowns[key])return;cooldowns[key]=now+Z.cd;
+  c.freezeUntil=now+4000;
+  const hf=healthFactor(c);
+  let pts=Math.max(1,Math.round(Z.pts*hf*(c.sick?0.5:1)));
+  let moodGain=Math.max(1,Math.round(Z.mood*hf/3));
+  let isFav=(c.fav===zoneId),reaction=pick(Z.react),heart="💗";
+  if(Z.ticklish&&Math.random()<0.16){reaction="nyah! 😼";pts=Math.max(1,pts-1);c.mood=clamp(c.mood-2);heart="💢";}
+  else{c.mood=clamp(c.mood+moodGain);c.loveUntil=now+900;if(isFav){pts=Math.round(pts*1.7);reaction="♡ fave spot! ♡";heart="💖";}}
+  const granted=earnCoins(pts);emote(reaction);beep("pet");spriteAnim(c,heart==="💢"?"happy":"love",1000);
+  if(clientX){if(granted>0)fx(clientX,clientY-8,"+"+granted,"#fff8");else fx(clientX,clientY-8,"cap","#ffd")
+    ;fx(clientX-12,clientY,heart);}
+  c._sig=null;bumpWallet();renderHUD();syncSprites();saveGame();
+}
+function feed(food){
+  const c=selectedCat();if(state.pts<food.cost){toast("Not enough points 🪙");return;}
+  state.pts-=food.cost;const before=stageIndex(c);
+  c.tummy=clamp(c.tummy+food.tummy);c.mood=clamp(c.mood+(food.mood||0));c.energy=clamp(c.energy+(food.energy||0));c.hygiene=clamp(c.hygiene+(food.hygiene||0));
+  if(!c.sick)c.growth+=food.xp;c.loveUntil=Date.now()+900;
+  if(food.cure&&c.sick){c.sick=false;c.neglect=0;c.danger=0;toast(`${c.name} is all better! 💚`);}
+  beep("eat");if(c.sleeping){c.sleeping=false;c.behavior="wander";}
+  c.freezeUntil=Date.now()+1600;
+  c._sig=null;if(stageIndex(c)>before)growUp(c);
+  closeSheet();                 // hide the menu so you can watch the cat eat
+  // picky cats may be upset by cheap food
+  const picky=traitOf(c)==="picky", cheap=(food.id==="kibble"||food.id==="treat");
+  if(picky&&cheap&&!food.cure&&Math.random()<0.5){
+    spriteAnim(c,"spew",1400);setTimeout(()=>doSpew(c,"yuck! too cheap 🤢"),300);
+  } else {
+    emote("nom nom "+food.emoji);spriteAnim(c,"eat",1400);
+  }
+  renderHUD();syncSprites();saveGame();
+}
+function growUp(c){beep("grow");fxAtCat(c,"🎉");for(let i=0;i<6;i++)setTimeout(()=>fxAtCat(c,"✨","#F2C14E"),i*70);emote(`grew into a ${STAGES[stageIndex(c)].label}!`);toast(`🎉 ${c.name} grew up!`);}
+/* A spew (hairball / throwing up). Rare. Leaves a mess and dents tummy/hygiene/mood. */
+function doSpew(c,msg){
+  const r=getRoom(c.roomId);if(!r)return;
+  c.tummy=clamp(c.tummy-10);c.hygiene=clamp(c.hygiene-12);c.mood=clamp(c.mood-6);c._sig=null;
+  if(r.poops.length<12)r.poops.push({id:uid("p"),type:"spew",left:8+c.x*84,bottom:14+Math.random()*16});
+  beep("yawn");
+  if(c.roomId===state.activeRoom){spriteAnim(c,"spew",1400);emote(msg||"hrrk… 🤢");renderPoops();}
+  saveGame();
+}
+function playToy(toy){
+  const c=selectedCat();if(c.sleeping){toast(`${c.name} is asleep 😴`);return;}
+  if(isBreeding(c)){toast(`${c.name} is busy breeding 💞`);return;}
+  const now=Date.now();
+  if(!canPlayNow(c)){toast(`${c.name} does not feel like playing right now`);return;}
+  if(c.energy<6&&toy.energy<0){toast(`${c.name} is too sleepy to play 😴`);return;}
+  c.lastPlayAt=now;const hf=healthFactor(c);
+  c.mood=clamp(c.mood+Math.round(toy.mood*hf));c.energy=clamp(c.energy+toy.energy);if(!c.sick)c.growth+=toy.xp;c.loveUntil=now+900;c.freezeUntil=now+1800;
+  beep("play");emote("wheee! "+toy.emoji);fxAtCat(c,toy.emoji);spriteAnim(c,"play",1400);c._sig=null;
+  closeSheet();                 // hide the menu so you can watch the cat play
+  renderHUD();syncSprites();saveGame();
+}
+function scratchPostAction(){
+  const c=selectedCat();if(!c)return;if(c.sleeping){c.sleeping=false;c.behavior="wander";}
+  c.mood=clamp(c.mood+8);c.loveUntil=Date.now()+700;beep("pet");emote("*scratch!* 🪵");spriteAnim(c,"scratch",700);c._sig=null;renderHUD();syncSprites();saveGame();
+}
+function buyToy(toy){if(state.toys.includes(toy.id)){playToy(toy);return;}if(state.pts<toy.cost){toast("Not enough points 🪙");return;}state.pts-=toy.cost;state.toys.push(toy.id);beep("coin");toast(`Bought ${toy.name}! ${toy.emoji}`);renderHUD();saveGame();refreshSheet();}
+function buyComfort(item){const r=activeRoom();if(r.comfort.includes(item.id)){toast("This room already has one ✓");return;}if(state.pts<item.cost){toast("Not enough points 🪙");return;}state.pts-=item.cost;r.comfort.push(item.id);beep("coin");toast(`Added ${item.name} to ${r.name}! ${item.emoji}`);renderFurni();saveGame();refreshSheet();}
+function repairCouch(){const r=activeRoom();if(r.couch>=100){toast("Couch is pristine ✨");return;}const cost=Math.round(100-r.couch)+5;if(state.pts<cost){toast("Not enough points 🪙");return;}state.pts-=cost;r.couch=100;beep("coin");toast("Couch repaired! 🛋️✨");renderFurni();renderHUD();saveGame();refreshSheet();}
+function cleanPoop(id,ev){const r=activeRoom();r.poops=r.poops.filter(p=>p.id!==id);const c=selectedCat();if(c)c.hygiene=clamp(c.hygiene+8);earnCoins(1);beep("coin");if(ev)fx(ev.clientX,ev.clientY,"✨","#fff");bumpWallet();renderPoops();renderHUD();saveGame();}
+function cleanLitter(boxId){const r=activeRoom();const box=r.litters.find(b=>b.id===boxId)||r.litters[0];if(!box)return;if(box.clean>=100){toast("This box is already clean ✨");return;}box.clean=100;const g=earnCoins(1);beep("coin");emote("scooped! 🧹");toast(`Litter box cleaned 🧹${g>0?" +1":""}`);bumpWallet();renderFurni();renderHUD();saveGame();}
+function buyLitter(){const r=activeRoom();if(state.pts<LITTER_COST){toast("Not enough points 🪙");return;}state.pts-=LITTER_COST;const box={id:uid("lit"),clean:100};r.litters.push(box);furniPos(r,box.id,{x:0.85-(r.litters.length-1)*0.13,b:14});beep("coin");toast("New litter box added! 🧰");renderFurni();renderHUD();saveGame();refreshSheet();}
+function buyFeeder(){const r=activeRoom();if(r.feeder){toast("This room already has a feeder ✓");return;}if(state.pts<FEEDER_BUY_COST){toast("Not enough points 🪙");return;}state.pts-=FEEDER_BUY_COST;r.feeder={level:1,feeds:0};furniPos(r,"feeder",{x:0.5,b:14});beep("coin");toast("Auto-feeder installed! 🍚 Tap it to fill.");renderFurni();renderHUD();saveGame();refreshSheet();}
+function upgradeFeeder(){const r=activeRoom();if(!r.feeder){toast("Buy a feeder first 🍚");return;}if(r.feeder.level>=FEEDER_MAX_LEVEL){toast("Feeder is at max level ✨");return;}const cost=feederUpCost(r.feeder.level);if(state.pts<cost){toast("Not enough points 🪙");return;}state.pts-=cost;r.feeder.level++;beep("coin");toast(`Feeder upgraded to Lv${r.feeder.level} (holds ${feederCap(r.feeder.level)} feeds)!`);renderFurni();renderHUD();saveGame();refreshSheet();}
+function fillFeeder(){const r=activeRoom();if(!r.feeder){return;}const cap=feederCap(r.feeder.level);
+  if(r.feeder.feeds>=cap){toast("Feeder is full 🍚");return;}
+  if(state.pts<FEEDER_FILL_COST){toast("Not enough coins to fill 🪙");return;}
+  // add as many feeds as the player can afford / fits, but a single tap is one fill action — add one feed per available coins chunk
+  let added=0;
+  while(r.feeder.feeds<cap&&state.pts>=FEEDER_FILL_COST){state.pts-=FEEDER_FILL_COST;r.feeder.feeds++;added++;}
+  if(added){beep("coin");bumpWallet();emote(`filled +${added} 🍚`);toast(`Filled ${added} feed${added>1?"s":""} (−${added*FEEDER_FILL_COST} 🪙)`);}
+  renderFurni();renderHUD();saveGame();refreshSheet();}
+function feederEat(c){const r=getRoom(c.roomId);if(!r||!r.feeder||r.feeder.feeds<=0)return false;
+  r.feeder.feeds--;c.tummy=clamp(c.tummy+FEEDER_FEED_FOOD);c.loveUntil=Date.now()+700;c.freezeUntil=Date.now()+900;
+  if(c.roomId===state.activeRoom){spriteAnim(c,"eat",900);emote("nom (auto-feeder) 🍚");renderFurni();}
+  c._sig=null;saveGame();return true;}
+function toggleSleep(){const c=selectedCat();c.sleeping=!c.sleeping;c.behavior=c.sleeping?"nap":"wander";c.behaviorUntil=0;if(c.sleeping)emote("zzz… 💤");else emote("*stretch* ☀️");beep("yawn");c._sig=null;renderHUD();syncSprites();saveGame();}
+function renameCat(v){const c=selectedCat();c.name=(v||"").trim().slice(0,12)||c.name;renderHUD();syncSprites();saveGame();}
+function adoptFromShelter(sid){
+  const sc=state.shelter.find(s=>s.sid===sid);if(!sc)return;
+  if(state.pts<sc.cost){toast("Not enough points 🪙");return;}
+  const room=state.rooms.find(r=>roomHasResidentSpace(r));
+  if(!room){toast("All rooms are full! Buy another room 🏠");return;}
+  state.pts-=sc.cost;const c=newCat(sc.breed,{name:sc.name,sex:sc.sex,roomId:room.id});
+  state.cats.push(c);state.activeRoom=room.id;state.selected=c.id;state.adopted++;generateShelter();beep("grow");renderAll();saveGame();
+  toast(`🎉 Welcome ${c.name} (${BREEDS[sc.breed].name}) to ${room.name}!`);refreshSheet();
+}
+function buyRoom(kind){
+  const k=ROOM_KINDS[kind];if(state.pts<k.cost){toast("Not enough points 🪙");return;}
+  state.pts-=k.cost;const r=newRoom(kind);state.rooms.push(r);state.activeRoom=r.id;beep("coin");renderAll();saveGame();
+  toast(`🏠 Built a ${k.label} (holds ${k.cap} cats)!`);refreshSheet();
+}
+function moveCat(catId,roomId){
+  const c=state.cats.find(x=>x.id===catId),r=getRoom(roomId);if(!c||!r)return;
+  if(catsIn(roomId).length>=roomCap(r)){toast(`${r.name} is full!`);return;}
+  c.roomId=roomId;c.x=0.3+Math.random()*0.4;c.y=0.4;c.behavior="wander";c.behaviorUntil=0;
+  if(state.selected===catId&&roomId!==state.activeRoom){/* keep selected */}
+  beep("coin");toast(`${c.name} moved to ${r.name} 🚪`);renderAll();saveGame();refreshSheet();
+}
+function switchRoom(id){state.activeRoom=id;for(const k in spriteEls){spriteEls[k].remove();delete spriteEls[k];}
+  const here=catsIn(id);if(!here.find(c=>c.id===state.selected))state.selected=here[0]&&here[0].id;renderAll();saveGame();}
+/* breeding */
+function startBreeding(){
+  if(state.breeding){toast("A pair is already breeding 💞");return;}
+  const f=state.cats.find(c=>c.id===selF),m=state.cats.find(c=>c.id===selM);
+  if(!f||!m){toast("Pick a female ♀ and a male ♂");return;}
+  if(!hasRoomSpace()){toast("No room for a kitten! Buy another room 🏠");return;}
+  if(!canBreed(f)||!canBreed(m)){toast("Both must be healthy Teens/Adults with tummy & energy over 80 🍗⚡");return;}
+  f.sleeping=false;m.sleeping=false;
+  state.breeding={f:f.id,m:m.id,until:Date.now()+BREED_TIME};selF=null;selM=null;beep("grow");
+  toast(`💞 ${f.name} & ${m.name} are getting cozy… (1 hour)`);closeSheet();renderAll();saveGame();
+}
+function finishBreeding(){
+  const br=state.breeding;if(!br)return;state.breeding=null;
+  const f=state.cats.find(c=>c.id===br.f),m=state.cats.find(c=>c.id===br.m);if(!f||!m)return;
+  for(const p of [f,m]){p.mood=100;p.tummy=clamp(p.tummy-20);p.energy=Math.max(0,p.energy-80);if(p.energy<=0){p.energy=0;p.sleeping=true;p.behavior="nap";}p._sig=null;}
+  const room=state.rooms.find(r=>roomHasResidentSpace(r));
+  if(!room){toast("💞 The kitten couldn't be born — no room space! Build a room. 🏠");renderAll();saveGame();return;}
+  const kitten=newCat(Math.random()<0.5?f.breed:m.breed,{roomId:room.id});state.cats.push(kitten);
+  beep("grow");toast(`🍼 A kitten was born! Welcome ${kitten.name} ${kitten.sex==="female"?"♀":"♂"}!`);
+  fxAtCat(f,"💗","#F38BA6");renderAll();saveGame();
+}
+
+/* ============================ SHEET ============================ */
+let currentSheet=null,currentTab=null;
+function coin(n){return `<span class="coin-mini"></span>${n}`;}
+function openSheet(which,tab){currentSheet=which;currentTab=tab||(which==="shop"?"toys":null);document.getElementById("scrim").classList.add("open");document.getElementById("sheet").classList.add("open");refreshSheet();}
+function closeSheet(){currentSheet=null;document.getElementById("scrim").classList.remove("open");document.getElementById("sheet").classList.remove("open");}
+function refreshSheet(){if(!currentSheet)return;const body=document.getElementById("sheetBody");
+  if(currentSheet==="feed")body.innerHTML=feedHTML();else if(currentSheet==="play")body.innerHTML=playHTML();else if(currentSheet==="shop")body.innerHTML=shopHTML();bindSheet();}
+function feedHTML(){const c=selectedCat();return `<h2>🍽️ Feed ${c.name}</h2><p class="sub">${coin(state.pts)} available.</p>
+  ${FOODS.map((f,i)=>`<div class="item"><div class="big">${f.emoji}</div><div class="info"><div class="nm">${f.name}</div>
+    <div class="ds">${f.cure?"Cures sickness · ":""}+${f.tummy} tummy${f.xp?` · +${f.xp} growth`:""}${f.mood?` · +${f.mood} mood`:""}${f.energy?` · +${f.energy} energy`:""}${f.hygiene?` · +${f.hygiene} hygiene`:""}</div></div>
+    <button class="buy" data-feed="${i}" ${state.pts<f.cost?"disabled":""}>${coin(f.cost)}</button></div>`).join("")}`;}
+function playHTML(){const c=selectedCat();const owned=TOYS.filter(t=>state.toys.includes(t.id));
+  if(!owned.length)return `<h2>🧶 Play</h2><p class="sub">No toys yet — buy some in the 🛒 Shop.</p><div class="item"><div class="big">🛒</div><div class="info"><div class="nm">No toys yet</div><div class="ds">Toys are in the Shop.</div></div><button class="buy use" id="goShop">Shop</button></div>`;
+  return `<h2>🧶 Play with ${c.name}</h2><p class="sub">Boosts mood &amp; growth.</p>${owned.map(t=>`<div class="item"><div class="big">${t.emoji}</div><div class="info"><div class="nm">${t.name}</div><div class="ds">+${t.mood} mood · ${t.energy>=0?"+":""}${t.energy} energy · +${t.xp} growth</div></div><button class="buy use" data-play="${t.id}">Play ▶</button></div>`).join("")}`;}
+function shopHTML(){
+  const tabs=`<div class="tabs">
+    <button class="tab ${currentTab==="toys"?"active":""}" data-tab="toys">🧶 Toys</button>
+    <button class="tab ${currentTab==="cozy"?"active":""}" data-tab="cozy">🛋️ Furniture</button>
+    <button class="tab ${currentTab==="rooms"?"active":""}" data-tab="rooms">🏠 Rooms</button>
+    <button class="tab ${currentTab==="adopt"?"active":""}" data-tab="adopt">🐱 Adopt</button>
+    <button class="tab ${currentTab==="breed"?"active":""}" data-tab="breed">💞 Breed</button>
+    <button class="tab ${currentTab==="cats"?"active":""}" data-tab="cats">⚙️ Cats</button></div>`;
+  let inner="";
+  if(currentTab==="toys"){inner=TOYS.map(t=>{const o=state.toys.includes(t.id);return `<div class="item"><div class="big">${t.emoji}</div><div class="info"><div class="nm">${t.name}</div><div class="ds">+${t.mood} mood · ${t.energy>=0?"+":""}${t.energy} energy · +${t.xp} growth</div></div><button class="buy ${o?"owned":""}" data-toy="${t.id}" ${(!o&&state.pts<t.cost)?"disabled":""}>${o?"Owned ✓":coin(t.cost)}</button></div>`;}).join("");}
+  else if(currentTab==="cozy"){const r=activeRoom();const need=littersNeeded(r),have=r.litters.length;
+    inner=`<p class="sub" style="margin-top:-6px;">Furnishing <b>${r.name}</b> — drag any furniture (incl. the couch &amp; litter boxes) around the room to move it.</p>`+
+      `<div class="item"><div class="big">🧰</div><div class="info"><div class="nm">Litter Box <span class="ds" style="display:inline">(${have} in room)</span></div><div class="ds">Adults &amp; teens really want their own box — recommended: <b>${need}</b> for this room. Kittens will share. Fuller, dirtier boxes mean more floor accidents.</div></div><button class="buy" data-buylitter ${state.pts<LITTER_COST?"disabled":""}>${coin(LITTER_COST)}</button></div>`+
+      COMFORT.map(it=>{const o=r.comfort.includes(it.id);return `<div class="item"><div class="big">${it.emoji}</div><div class="info"><div class="nm">${it.name}</div><div class="ds">${it.desc}</div></div><button class="buy ${o?"owned":""}" data-comfort="${it.id}" ${(!o&&state.pts<it.cost)?"disabled":""}>${o?"In room ✓":coin(it.cost)}</button></div>`;}).join("");
+    const fix=Math.round(100-r.couch)+5;
+    inner+=`<div class="item"><div class="big">🛋️</div><div class="info"><div class="nm">Couch — ${Math.round(r.couch)}%</div><div class="ds">${r.couch>=100?"Pristine.":"Scratched up — repair it or add a post."}</div></div>${r.couch<100?`<button class="buy" id="repairBtn" ${state.pts<fix?"disabled":""}>Fix ${coin(fix)}</button>`:'<button class="buy owned" disabled>OK ✓</button>'}</div>`;
+    // auto-feeder
+    if(!r.feeder){
+      inner+=`<div class="item"><div class="big">🍚</div><div class="info"><div class="nm">Auto-Feeder</div><div class="ds">Cats walk over when hungry and grab a feed (+${FEEDER_FEED_FOOD} tummy). Holds ${feederCap(1)} feeds at Lv1; upgrade up to Lv${FEEDER_MAX_LEVEL} (${feederCap(FEEDER_MAX_LEVEL)} feeds, +2/level). Tap it in the room to fill — ${FEEDER_FILL_COST} 🪙 per feed.</div></div><button class="buy" id="buyFeederBtn" ${state.pts<FEEDER_BUY_COST?"disabled":""}>${coin(FEEDER_BUY_COST)}</button></div>`;
+    } else {
+      const cap=feederCap(r.feeder.level),atMax=r.feeder.level>=FEEDER_MAX_LEVEL,up=feederUpCost(r.feeder.level);
+      const toFull=cap-r.feeder.feeds, fillCostAll=toFull*FEEDER_FILL_COST;
+      inner+=`<div class="item"><div class="big">🍚</div><div class="info"><div class="nm">Auto-Feeder — Lv${r.feeder.level}</div><div class="ds">${r.feeder.feeds}/${cap} feeds left · each feed gives +${FEEDER_FEED_FOOD} tummy. Tap the feeder in the room to fill (${FEEDER_FILL_COST} 🪙 each).</div></div>${toFull>0?`<button class="buy" id="fillFeederBtn" ${state.pts<FEEDER_FILL_COST?"disabled":""}>Fill ${coin(fillCostAll)}</button>`:'<button class="buy owned" disabled>Full ✓</button>'}</div>`;
+      inner+=`<div class="item"><div class="big">⬆️</div><div class="info"><div class="nm">Upgrade Feeder</div><div class="ds">${atMax?`Maxed out — holds ${cap} feeds. ✨`:`Lv${r.feeder.level} → Lv${r.feeder.level+1}: capacity ${cap} → ${feederCap(r.feeder.level+1)} feeds.`}</div></div>${atMax?'<button class="buy owned" disabled>Max ✓</button>':`<button class="buy" id="upFeederBtn" ${state.pts<up?"disabled":""}>${coin(up)}</button>`}</div>`;
+    }}
+  else if(currentTab==="rooms"){
+    inner=`<p class="sub" style="margin-top:-6px;">More rooms = more cats! Each room is furnished &amp; cleaned separately, and cats can travel between them.</p>`+
+      state.rooms.map(r=>`<div class="item"><div class="big">🏠</div><div class="info"><div class="nm">${r.name}${r.id===state.activeRoom?" ⭐":""}</div><div class="ds">${catsIn(r.id).length}/${roomCap(r)} cats${r.id===state.activeRoom?" · currently viewing":""}</div></div>${r.id===state.activeRoom?'<button class="buy owned" disabled>Active</button>':`<button class="buy use" data-room="${r.id}">View</button>`}</div>`).join("")+
+      `<div class="coltitle">Build a new room</div>`+
+      ["small","medium","large"].map(k=>{const kk=ROOM_KINDS[k];return `<div class="item"><div class="big">➕</div><div class="info"><div class="nm">${kk.label}</div><div class="ds">Holds up to ${kk.cap} cats.</div></div><button class="buy" data-buyroom="${k}" ${state.pts<kk.cost?"disabled":""}>${coin(kk.cost)}</button></div>`;}).join("");}
+  else if(currentTab==="adopt"){
+    inner=`<p class="sub" style="margin-top:-6px;">Kittens looking for a home — pick one! 🏠</p>`+
+      state.shelter.map(sc=>{const B=BREEDS[sc.breed];return `<div class="item"><div class="big" style="background:${B.fur}">🐈</div><div class="info"><div class="nm">${sc.name} ${sexSym(sc.sex)}</div><div class="ds">${sexWord(sc.sex)} · ${B.name} · <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${B.fur};border:1px solid rgba(0,0,0,.15);vertical-align:middle;"></span></div></div><button class="buy" data-adopt="${sc.sid}" ${state.pts<sc.cost?"disabled":""}>${coin(sc.cost)}</button></div>`;}).join("")+
+      `<p class="sub" style="margin-top:2px;">New kittens go to the first room with space.</p>`;}
+  else if(currentTab==="breed"){inner=breedHTML();}
+  else if(currentTab==="cats"){const c=selectedCat();
+    inner=`<p class="sub">Rename ${c.name}:</p><div class="rename-row"><input id="renameInput" maxlength="12" value="${c.name.replace(/"/g,'&quot;')}" placeholder="Name"><button class="buy use" id="renameBtn">Save</button></div>`+
+      state.cats.map(c2=>{const others=state.rooms.filter(r=>r.id!==c2.roomId&&roomHasResidentSpace(r));
+        const tr=TRAITS[traitOf(c2)];
+        return `<div class="item"><div class="big" style="background:${BREEDS[c2.breed].fur}">🐱</div><div class="info"><div class="nm">${c2.name} ${sexSym(c2.sex)}${c2.id===state.selected?" ⭐":""}${c2.sick?" 🤒":""}${isBreeding(c2)?" 💞":""}</div>
+        <div class="ds">${sexWord(c2.sex)} · ${BREEDS[c2.breed].name} · ${STAGES[stageIndex(c2)].label} · in ${getRoom(c2.roomId)?getRoom(c2.roomId).name:"?"}</div>
+        <div class="ds">${tr.emoji} <b>${tr.label}</b> — ${tr.desc}</div>
+        <label class="doorToggle"><input type="checkbox" data-door="${c2.id}" ${c2.closeDoor?"checked":""}> 🚪 Close door</label>
+        <div class="ds" style="margin-top:1px;">When on, ${c2.name} stays in their current room and won't wander off to other rooms.</div>
+        ${others.length?`<div class="movebtns">${others.map(r=>`<button class="mv" data-move="${c2.id}" data-room="${r.id}">→ ${r.name}</button>`).join("")}</div>`:""}</div>
+        <button class="buy use" data-sel="${c2.id}">Select</button></div>`;}).join("");}
+  return `<h2>🛒 Shop</h2><p class="sub">${coin(state.pts)} points to spend.</p>${tabs}${inner}`;
+}
+function breedHTML(){
+  if(state.breeding){const ms=Math.max(0,state.breeding.until-Date.now());const h=Math.floor(ms/3600000),mn=Math.floor(ms%3600000/60000),sc=Math.floor(ms%60000/1000);const tstr=h>0?`${h}h ${mn}m`:(mn>0?`${mn}m ${sc}s`:`${sc}s`);const f=state.cats.find(c=>c.id===state.breeding.f),m=state.cats.find(c=>c.id===state.breeding.m);
+    return `<div class="item"><div class="big">💞</div><div class="info"><div class="nm">${f?f.name:"?"} &amp; ${m?m.name:"?"}</div><div class="ds">A kitten arrives in <b>${tstr}</b>! Parents finish content but tired, and each loses 20 tummy.</div></div></div>`;}
+  const females=state.cats.filter(c=>c.sex==="female"&&canBreed(c)),males=state.cats.filter(c=>c.sex==="male"&&canBreed(c));
+  const row=(c,sel,attr)=>`<div class="item selectable ${sel===c.id?"selected":""}" ${attr}="${c.id}"><div class="big" style="background:${BREEDS[c.breed].fur}">🐱</div><div class="info"><div class="nm">${c.name} ${sexSym(c.sex)}</div><div class="ds">${BREEDS[c.breed].name} · ${STAGES[stageIndex(c)].label} · ${getRoom(c.roomId)?getRoom(c.roomId).name:""}</div></div></div>`;
+  let html=`<p class="sub" style="margin-top:-6px;">Pick a healthy female ♀ and male ♂ (Teen/Adult) with tummy 🍗 &amp; energy ⚡ both over 80. Breeding takes 1 hour, then both parents lose 20 tummy. You also need a free spot for the kitten.</p>`;
+  if(!hasRoomSpace()){html+=`<div class="item"><div class="big">🏠</div><div class="info"><div class="nm">All rooms are full</div><div class="ds">A new kitten needs space — build another room in the 🏠 Rooms tab before breeding.</div></div></div>`;}
+  if(!females.length||!males.length){html+=`<div class="item"><div class="big">🐾</div><div class="info"><div class="nm">Not ready yet</div><div class="ds">You need a healthy female ♀ and male ♂, grown to Teen or Adult, each with tummy &amp; energy over 80. Feed &amp; rest your cats to get them ready!</div></div></div>`;return html;}
+  html+=`<div class="coltitle">♀ Choose the mum</div>`+females.map(c=>row(c,selF,"data-self")).join("");
+  html+=`<div class="coltitle">♂ Choose the dad</div>`+males.map(c=>row(c,selM,"data-selm")).join("");
+  const blocked=!hasRoomSpace();
+  html+=`<button class="buy love" id="breedBtn" ${(!selF||!selM||blocked)?"disabled":""}>💞 Start breeding (1 hour)</button>`;return html;
+}
+function bindSheet(){
+  document.querySelectorAll("[data-feed]").forEach(b=>b.onclick=()=>feed(FOODS[+b.dataset.feed]));
+  document.querySelectorAll("[data-play]").forEach(b=>b.onclick=()=>playToy(TOYS.find(t=>t.id===b.dataset.play)));
+  document.querySelectorAll("[data-toy]").forEach(b=>b.onclick=()=>buyToy(TOYS.find(t=>t.id===b.dataset.toy)));
+  document.querySelectorAll("[data-comfort]").forEach(b=>b.onclick=()=>buyComfort(COMFORT.find(t=>t.id===b.dataset.comfort)));
+  const bl=document.querySelector("[data-buylitter]");if(bl)bl.onclick=buyLitter;
+  const bf=document.getElementById("buyFeederBtn");if(bf)bf.onclick=buyFeeder;
+  const ff=document.getElementById("fillFeederBtn");if(ff)ff.onclick=fillFeeder;
+  const uf=document.getElementById("upFeederBtn");if(uf)uf.onclick=upgradeFeeder;
+  document.querySelectorAll("[data-adopt]").forEach(b=>b.onclick=()=>adoptFromShelter(b.dataset.adopt));
+  document.querySelectorAll("[data-buyroom]").forEach(b=>b.onclick=()=>buyRoom(b.dataset.buyroom));
+  document.querySelectorAll("[data-room]:not(.mv)").forEach(b=>{if(b.hasAttribute("data-move"))return;b.onclick=()=>switchRoom(b.dataset.room);});
+  document.querySelectorAll("[data-move]").forEach(b=>b.onclick=()=>moveCat(b.dataset.move,b.dataset.room));
+  document.querySelectorAll("[data-door]").forEach(b=>b.onchange=()=>{const c2=state.cats.find(x=>x.id===b.dataset.door);if(c2){c2.closeDoor=b.checked;saveGame();toast(c2.closeDoor?`${c2.name}'s door is closed 🚪`:`${c2.name}'s door is open 🚪`);}});
+  document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{currentTab=b.dataset.tab;refreshSheet();});
+  document.querySelectorAll("[data-sel]").forEach(b=>b.onclick=()=>{state.selected=b.dataset.sel;const c=state.cats.find(x=>x.id===b.dataset.sel);if(c&&c.roomId!==state.activeRoom)switchRoom(c.roomId);renderHUD();syncSprites();refreshSheet();});
+  document.querySelectorAll("[data-self]").forEach(b=>b.onclick=()=>{selF=(selF===b.dataset.self)?null:b.dataset.self;refreshSheet();});
+  document.querySelectorAll("[data-selm]").forEach(b=>b.onclick=()=>{selM=(selM===b.dataset.selm)?null:b.dataset.selm;refreshSheet();});
+  const bb=document.getElementById("breedBtn");if(bb)bb.onclick=startBreeding;
+  const rp=document.getElementById("repairBtn");if(rp)rp.onclick=repairCouch;
+  const gs=document.getElementById("goShop");if(gs)gs.onclick=()=>openSheet("shop","toys");
+  const rb=document.getElementById("renameBtn");if(rb)rb.onclick=()=>{renameCat(document.getElementById("renameInput").value);toast("Saved ✓");refreshSheet();};
+}
+
+/* ============================ BEHAVIOR (per slow tick) ============================ */
+/* Place a poop on the floor directly in front of a litter box. */
+function dropPoopAtBox(r,box){
+  if(r.poops.length>=10)return;
+  const pos=furniPos(r,box.id,{x:0.85,b:14});
+  const left=Math.max(4,Math.min(94,pos.x*100));   // same horizontal spot as the box
+  const bottom=Math.max(8,pos.b-8);                 // just in front of (below) the box
+  r.poops.push({id:uid("p"),left,bottom});
+}
+/* A litter box is "free" for cat c if no OTHER cat in the room has claimed it. */
+function freeLitterFor(r,c){
+  if(!r.litters||!r.litters.length)return null;
+  const claimed=new Set(catsIn(r.id).filter(o=>o.id!==c.id&&o._pottyBox).map(o=>o._pottyBox));
+  // prefer the cleanest unclaimed box
+  const open=r.litters.filter(b=>!claimed.has(b.id)).sort((a,b)=>b.clean-a.clean);
+  return open[0]||null;
+}
+/* Play cooldown: a cat won't initiate play more than once per window.
+   Younger cats recover quicker (kittens ~12min, teens ~20min, adults ~30min). */
+function playCooldownMs(c){return [12,20,30][stageIndex(c)]*60000;}
+function canPlayNow(c){return Date.now()-(c.lastPlayAt||0)>=playCooldownMs(c);}
+function assignBehavior(c){
+  const r=getRoom(c.roomId),roll=Math.random();
+  c._pottyBox=null; // release any stale litter-box claim before picking a new action
+  // a breeding cat just paces/cuddles — it won't eat, play, or potty
+  if(isBreeding(c)){c.behavior="wander";c.tx=0.3+Math.random()*0.4;c.ty=0.35+Math.random()*0.4;return;}
+  // hungry cat heads to the auto-feeder if it has food
+  if(c.tummy<55&&r.feeder&&r.feeder.feeds>0){const t=furniTarget(r,"feeder",{x:0.5,b:14});c.tx=t.tx;c.ty=t.ty;c.behavior="goFeeder";return;}
+  if(c.energy<28&&roll<0.5){if(r.comfort.includes("bed")){const t=furniTarget(r,"bed",{x:0.5,b:8});c.tx=t.tx;c.ty=t.ty;}else{c.tx=c.x;c.ty=c.y;}c.behavior="goNap";return;}
+  // cats only need the toilet a few times a day — gate by real time elapsed
+  let pottyChance=0.5;
+  if(traitOf(c)==="accident")pottyChance=0.75; // accident-prone go more often
+  const needsPotty=(Date.now()-(c.lastPottyAt||0))>POTTY_INTERVAL;
+  if(needsPotty&&roll<pottyChance){
+    const box=freeLitterFor(r,c);
+    c._pottyBox=box?box.id:null;
+    if(box){const t=furniTarget(r,box.id,{x:0.85,b:14});c.tx=t.tx;c.ty=t.ty;}
+    else{c.tx=0.2+Math.random()*0.6;c.ty=0.3+Math.random()*0.5;} // wander to a random spot to go on the floor
+    c.behavior="goPotty";return;}
+  // wandering to another room (only if a door is open and another room exists)
+  if(!c.closeDoor&&state.rooms.length>1&&roll<0.12){
+    c.behavior="goDoor";c._exitFace=Math.random()<0.5?-1:1;c.tx=c._exitFace<0?-0.12:1.12;c.ty=0.35+Math.random()*0.3;return;}
+  if(roll<0.30&&state.toys.length&&canPlayNow(c)){c.behavior="goPlay";c.tx=0.25+Math.random()*0.5;c.ty=0.35+Math.random()*0.45;return;}
+  // scratching is occasional; scratchy cats do it more
+  const scratchChance=traitOf(c)==="scratchy"?0.55:0.42;
+  if(roll<scratchChance){if(r.comfort.includes("post")){const t=furniTarget(r,"post",{x:0.30,b:18});c.tx=t.tx;c.ty=t.ty;}else{const t=furniTarget(r,"couch",{x:0.13,b:16});c.tx=t.tx;c.ty=t.ty;}c.behavior="goScratch";return;}
+  c.behavior="wander";c.tx=0.1+Math.random()*0.8;c.ty=0.2+Math.random()*0.7;
+}
+function arrive(c){
+  const r=getRoom(c.roomId),active=c.roomId===state.activeRoom;
+  if(c.behavior==="goDoor"){
+    moveCatToAdjacentRoom(c);return;
+  } else if(c.behavior==="goFeeder"){
+    if(!feederEat(c)&&active)emote("feeder's empty… 🍽️");
+  } else if(c.behavior==="goPotty"){
+    // the cat walked here; record that it relieved itself (gates the next trip)
+    c.lastPottyAt=Date.now();
+    const accident=traitOf(c)==="accident";
+    const box=c._pottyBox?r.litters.find(b=>b.id===c._pottyBox):null;
+    if(box){
+      // claimed its own box — only a very dirty box causes a miss, and that
+      // chance is reduced by 70% (accident-prone cats miss a little more).
+      const fill=100-box.clean;
+      let miss=Math.min(0.35,fill/100*0.35)*0.30;   // 70% less likely to miss
+      if(accident)miss*=2;
+      if(Math.random()>miss){
+        box.clean=clamp(box.clean-22);
+        if(active){spriteAnim(c,"squat",1100);emote("used the litter box 🚽");renderFurni();}
+      } else {
+        dropPoopAtBox(r,box);
+        if(active){spriteAnim(c,"squat",1100);emote("oops, missed! 💩");renderPoops();}
+      }
+      c._pottyBox=null;
+    } else {
+      // no free box of its own → goes on the floor
+      if(r.poops.length<10){
+        r.poops.push({id:uid("p"),left:8+c.x*84,bottom:14+Math.random()*18});
+        if(active){spriteAnim(c,"squat",1100);emote("no clean box… 💩");renderPoops();}
+        if(active&&r.litters.length<residentsOf(r.id).length)pushMsg(`${c.name} had no box of their own — each cat wants one! 🧰`,false);
+      }
+    }
+  } else if(c.behavior==="goPlay"){
+    c.lastPlayAt=Date.now();
+    const naughty=traitOf(c)==="naughty";
+    c.mood=clamp(c.mood+(naughty?9:6));c.energy=clamp(c.energy-(naughty?5:3));if(!c.sick)c.growth+=2;
+    if(active){spriteAnim(c,"play",700);emote("playing! "+pick(["🧶","🪶","🐭"]));fxAtCat(c,pick(["🧶","🪶","🐭"]));}
+    // naughty cats sometimes knock things over and make a small mess
+    if(naughty&&Math.random()<0.25&&r.poops.length<10){r.poops.push({id:uid("p"),left:8+c.x*84,bottom:14+Math.random()*18});if(active){emote("knocked something over! 😼");renderPoops();}}
+  } else if(c.behavior==="goScratch"){
+    const scratchy=traitOf(c)==="scratchy";
+    if(r.comfort.includes("post")){c.mood=clamp(c.mood+4);if(active){spriteAnim(c,"scratch",700);emote("*scratch* 🪵");}}
+    else{r.couch=clamp(r.couch-(scratchy?5:2));if(active){spriteAnim(c,"scratch",700);emote("*scratch* 😼");renderFurni();}if(r.couch<=20)pushMsg(`${r.name}'s couch is getting worn — a post would help 🪵`,false);}
+  } else if(c.behavior==="goNap"){
+    c.sleeping=true;c.behavior="nap";c._sig=null;
+  }
+  if(c.behavior!=="nap"){c.behavior="idle";c.behaviorUntil=Date.now()+4000+Math.random()*6000;}
+}
+/* Move a cat that walked off-screen into another room (cats roam freely;
+   capacity only limits where they're born/adopted, not visiting). */
+function moveCatToAdjacentRoom(c){
+  const others=state.rooms.filter(r=>r.id!==c.roomId);
+  if(!others.length){c.behavior="idle";c.behaviorUntil=Date.now()+3000;c.x=clamp(c.x,0.08,0.92);c.tx=c.x;return;}
+  const dest=pick(others);
+  const fromActive=c.roomId===state.activeRoom;
+  c.roomId=dest.id;
+  // enter from the opposite edge it left through, walking inward
+  c.x=c._exitFace<0?1.08:-0.08;c.tx=0.3+Math.random()*0.4;c.ty=0.35+Math.random()*0.35;c.y=c.ty;
+  c.behavior="wander";c.behaviorUntil=0;
+  if(fromActive){ // it left the room we're viewing — drop its sprite
+    if(spriteEls[c.id]){spriteEls[c.id].remove();delete spriteEls[c.id];}
+    if(state.selected===c.id){const here=catsIn(state.activeRoom);state.selected=here[0]?here[0].id:c.id;}
+    renderNameStack&&renderNameStack();renderHUD&&renderHUD();
+  }
+  if(dest.id===state.activeRoom){syncSprites();} // it walked into the room we're viewing
+  saveGame();
+}
+
+/* ============================ MOVEMENT LOOP (rAF) ============================ */
+function frame(ts){
+  if(state){
+    const dt=Math.min(0.05,(ts-lastFrame)/1000||0);lastFrame=ts;const now=Date.now();
+    catsIn(state.activeRoom).forEach(c=>{
+      if(c.sleeping){c.hop=0;return;}
+      if(c.freezeUntil&&now<c.freezeUntil){c.hop=0;return;}
+      if(c.behavior==="idle"){if(now>=c.behaviorUntil)assignBehavior(c);c.hop=0;return;}
+      // move toward target
+      const dx=c.tx-c.x,dy=c.ty-c.y,dist=Math.hypot(dx,dy);
+      if(dist<0.02){arrive(c);c.hop=0;}
+      else{const sp=0.16*dt;const step=Math.min(sp,dist);c.x+=dx/dist*step;c.y+=dy/dist*step;c.face=dx<0?-1:1;c.hop=(c.hop||0)+dt*12;}
+    });
+    positionSprites();
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ============================ STAT TICK (slow) ============================ */
+function tick(){
+  if(!state)return;
+  const dead=[];
+  state.rooms.forEach(room=>{
+    const here=catsIn(room.id);
+    const avgL=roomLitterAvg(room);
+    const poopN=room.poops.length,cleanEnv=(poopN===0&&avgL>=60),dirtyLitter=(room.litters.length?avgL<25:true),badCouch=room.couch<45;
+    here.forEach(c=>{
+      const isActiveRoom=room.id===state.activeRoom, f=isActiveRoom?1:0.45;
+      if(c.sleeping){
+        const bed=room.comfort.includes("bed");
+        c.energy=clamp(c.energy+(bed?9:6));c.mood=clamp(c.mood+(bed?1.5:0.8));c.tummy=clamp(c.tummy-DECAY.tummySleep*f);
+        if(cleanEnv)c.hygiene=clamp(c.hygiene+0.3);
+        if(c.energy>=100){c.sleeping=false;c.behavior="wander";c.behaviorUntil=0;c._sig=null;if(isActiveRoom)pushMsg(`${c.name} woke up refreshed! ☀️`,false);}
+      } else {
+        const starving=c.tummy<=1;
+        c.tummy=clamp(c.tummy-DECAY.tummy*f);
+        let eD=DECAY.energy;if(room.comfort.includes("blanket"))eD*=0.8;if(room.comfort.includes("fountain"))c.tummy=clamp(c.tummy+0.004*f);if(starving)eD*=2;
+        c.energy=clamp(c.energy-eD*f);
+        if(room.comfort.includes("hammock"))c.energy=clamp(c.energy+0.3);
+        if(cleanEnv)c.hygiene=clamp(c.hygiene+0.7*(isActiveRoom?1:0.5));
+        else c.hygiene=clamp(c.hygiene-(DECAY.hygiene+poopN*0.03+(dirtyLitter?0.025:0))*f);
+        let mD=DECAY.mood;if(c.tummy<30||c.energy<25||c.hygiene<30)mD*=1.8;if(starving)mD*=3;
+        if(room.comfort.includes("tree"))mD*=0.7;if(room.comfort.includes("perch"))c.mood=clamp(c.mood+0.3);
+        if(badCouch||dirtyLitter||poopN>0)mD*=1.15;
+        c.mood=clamp(c.mood-mD*f);
+        if(c.energy<=0){c.energy=0;c.sleeping=true;c.behavior="nap";c._sig=null;pushMsg(`${c.name} collapsed asleep from exhaustion 😴`,false);}
+      }
+      const wb=wellbeing(c);
+      // rare spontaneous spew (hairball). Very uncommon; accident-prone cats more so.
+      if(!c.sleeping&&!isBreeding(c)){
+        let spewChance=0.0012;                 // ~per tick (tick=3.5s) → roughly a few times a day
+        if(traitOf(c)==="accident")spewChance*=3;
+        if(c.sick)spewChance*=2;
+        if(Math.random()<spewChance)doSpew(c);
+      }
+      if(wb<28){c.neglect=(c.neglect||0)+1;if(c.neglect>=3&&!c.sick){c.sick=true;c._sig=null;pushMsg(`🤒 ${c.name} got sick from neglect — care for them!`,false);}}
+      else if(wb>45)c.neglect=0;
+      if(c.sick&&wb>55){c.sick=false;c._sig=null;pushMsg(`💚 ${c.name} is feeling better!`,false);}
+      const inDanger=(c.tummy<=1)||(wb<18);
+      if(inDanger){c.danger=(c.danger||0)+1;
+        if(c.danger===2)pushMsg(`💔 ${c.name} is very weak — feed & clean them now!`,true);
+        else if(c.danger===6)pushMsg(`⚠️ ${c.name} IS FADING FAST! Help immediately!`,true);
+        if(c.danger>=10)dead.push(c.id);
+      } else if(wb>30&&c.tummy>10)c.danger=0;
+    });
+  });
+  // breeding
+  if(state.breeding){const f=state.cats.find(c=>c.id===state.breeding.f),m=state.cats.find(c=>c.id===state.breeding.m);
+    if(f&&f.roomId===state.activeRoom&&Math.random()<0.6)fxAtCat(f,pick(["💗","💕","💞"]),"#F38BA6");
+    if(m&&m.roomId===state.activeRoom&&Math.random()<0.6)fxAtCat(m,pick(["💗","💕","💞"]),"#F38BA6");}
+  if(state.breeding&&Date.now()>=state.breeding.until)finishBreeding();
+  if(state.breeding){const f=state.cats.find(c=>c.id===state.breeding.f),m=state.cats.find(c=>c.id===state.breeding.m);if(!f||!m)state.breeding=null;}
+  // deaths
+  if(dead.length){const c=state.cats.find(x=>x.id===dead[0]);beep("alarm");
+    pushMsg(`💔 Sadly, ${c.name} passed away from neglect. Please take good care of your kittens.`,true);
+    if(state.breeding&&(dead.includes(state.breeding.f)||dead.includes(state.breeding.m)))state.breeding=null;
+    state.cats=state.cats.filter(x=>!dead.includes(x.id));
+    dead.forEach(id=>{if(spriteEls[id]){spriteEls[id].remove();delete spriteEls[id];}});
+    if(!state.cats.find(x=>x.id===state.selected))state.selected=catsIn(state.activeRoom)[0]&&catsIn(state.activeRoom)[0].id;
+    if(state.cats.length===0){const nc=newCat("cream",{roomId:state.activeRoom});state.cats=[nc];state.selected=nc.id;setTimeout(()=>pushMsg("A new kitten needs a loving home — take good care this time! 🐱",false),2400);}
+  }
+  renderAll();saveGame();
+  if(currentSheet==="shop"&&currentTab==="breed")refreshSheet();
+}
+
+/* ============================ INIT ============================ */
+function bindGlobal(){
+  document.getElementById("catsLayer").addEventListener("click",e=>{
+    const sprite=e.target.closest(".catSprite");if(!sprite)return;
+    const id=sprite.dataset.cat,c=state.cats.find(x=>x.id===id);if(!c)return;
+    const zoneEl=e.target.closest(".zone");
+    if(state.selected!==id){selectCat(id);if(zoneEl)petCat(c,zoneEl.dataset.zone,e.clientX,e.clientY);}
+    else if(zoneEl)petCat(c,zoneEl.dataset.zone,e.clientX,e.clientY);
+    else selectCat(id);
+  });
+  document.querySelectorAll(".act[data-sheet]").forEach(b=>b.onclick=()=>openSheet(b.dataset.sheet));
+  document.getElementById("sleepBtn").onclick=toggleSleep;
+  document.getElementById("scrim").onclick=closeSheet;
+  document.getElementById("soundBtn").onclick=function(){sound=!sound;this.textContent=sound?"🔊":"🔇";if(sound)beep("pet");};
+  document.addEventListener("visibilitychange",()=>{if(document.hidden)saveGame();});
+}
+function migrate(s){
+  // bring older single-room saves forward
+  if(!s.rooms){const room=newRoom("starter");room.couch=s.couch!==undefined?s.couch:100;room.litters=[{id:uid("lit"),clean:s.litter!==undefined?s.litter:100}];room.poops=s.poops||[];room.comfort=s.comfort||[];room.furni={};s.rooms=[room];s.activeRoom=room.id;(s.cats||[]).forEach(c=>c.roomId=room.id);}
+  s.rooms.forEach(room=>{
+    if(!room.litters){room.litters=[{id:uid("lit"),clean:(room.litter!==undefined?room.litter:100)}];}
+    room.litters.forEach(b=>{if(!b.id)b.id=uid("lit");if(b.clean===undefined)b.clean=100;});
+    if(!room.furni)room.furni={};
+    if(room.couch===undefined)room.couch=100;
+    if(!room.poops)room.poops=[];
+    if(!room.comfort)room.comfort=[];
+    if(room.feeder===undefined)room.feeder=null;
+    delete room.litter;
+  });
+  s.toys=s.toys||[];if(s.breeding===undefined)s.breeding=null;
+  if(s.earnWindowStart===undefined)s.earnWindowStart=Date.now();
+  if(s.earnedThisHour===undefined)s.earnedThisHour=0;
+  s.cats=(s.cats||[]).filter(Boolean);
+  s.cats.forEach(c=>{["tummy","mood","energy","hygiene"].forEach(k=>{if(c[k]===undefined)c[k]=70;});
+    if(c.sleeping===undefined)c.sleeping=false;if(c.sick===undefined)c.sick=false;if(c.neglect===undefined)c.neglect=0;if(c.danger===undefined)c.danger=0;
+    if(c.loveUntil===undefined)c.loveUntil=0;if(!c.fav)c.fav="chin";if(!c.sex)c.sex=Math.random()<0.5?"female":"male";
+    if(c.x===undefined)c.x=0.3+Math.random()*0.4;if(c.y===undefined)c.y=0.4;if(c.tx===undefined)c.tx=c.x;if(c.ty===undefined)c.ty=c.y;
+    if(c.face===undefined)c.face=1;if(!c.behavior)c.behavior="wander";if(c.behaviorUntil===undefined)c.behaviorUntil=0;if(c.hop===undefined)c.hop=0;
+    if(c.lastPottyAt===undefined)c.lastPottyAt=Date.now()-Math.random()*POTTY_INTERVAL;
+    if(c.lastPlayAt===undefined)c.lastPlayAt=0;
+    if(!c.trait||!TRAITS[c.trait])c.trait=pick(TRAIT_KEYS);
+    if(c.closeDoor===undefined)c.closeDoor=false;
+    if(!c.roomId)c.roomId=s.activeRoom;
+    if(!c.homeRoom)c.homeRoom=c.roomId;});
+  state=s;
+  if(!s.shelter||!s.shelter.length)generateShelter();
+  if(!s.cats.length){const nc=newCat("cream",{name:"Mochi",roomId:s.activeRoom});s.cats=[nc];}
+  if(!s.cats.find(c=>c.id===s.selected))s.selected=s.cats[0].id;
+  return s;
+}
+/* Apply decay for real time elapsed while the game was closed, and award
+   offline coins (1/hour per cat whose every stat except growth is above 80).
+   Tuned slow so a full bar lasts most of a day. */
+function applyOfflineDecay(){
+  if(!state||!state.lastSeen)return;
+  const elapsedSec=Math.max(0,(Date.now()-state.lastSeen)/1000);
+  if(elapsedSec<30)return;                 // ignore quick reloads
+  const cap=60*60*48;                      // never decay more than ~48h worth in one jump
+  const sec=Math.min(elapsedSec,cap);
+  const hoursAway=elapsedSec/3600;
+  // per-second rates = per-tick rate / 3.5s tick (matches the live tick exactly)
+  const tummyR=DECAY.tummy/3.5, energyR=DECAY.energy/3.5, moodR=DECAY.mood/3.5, hygR=DECAY.hygiene/3.5;
+  let offlineCoins=0;
+  state.cats.forEach(c=>{
+    // a content cat (all non-growth stats >80) earns 1 coin/hour while you're away
+    const happy=c.tummy>80&&c.energy>80&&c.mood>80&&c.hygiene>80&&!c.sick;
+    if(happy)offlineCoins+=Math.floor(hoursAway);
+    // helpful cats chip in extra coins while you're away (even if not perfectly happy)
+    if(traitOf(c)==="helpful"&&!c.sick&&c.mood>40)offlineCoins+=Math.floor(hoursAway);
+    if(c.sleeping){
+      c.energy=clamp(c.energy + sec*(DECAY.tummySleep*2/3.5)*10); // recovers while away
+      c.tummy=clamp(c.tummy - sec*tummyR*0.5);
+    } else {
+      c.tummy=clamp(c.tummy - sec*tummyR);
+      c.energy=clamp(c.energy - sec*energyR);
+      c.mood=clamp(c.mood - sec*moodR);
+      c.hygiene=clamp(c.hygiene - sec*hygR);
+    }
+    c._sig=null;
+  });
+  if(offlineCoins>0){state.pts+=offlineCoins;setTimeout(()=>pushMsg(`Your happy cats earned ${offlineCoins} 🪙 while you were away!`,false),1300);}
+  const hrs=Math.floor(elapsedSec/3600);
+  if(hrs>=1)setTimeout(()=>pushMsg(`Welcome back! Your cats waited ${hrs}h — check on them 🐾`,false),900);
+}
+async function init(){
+  bindGlobal();
+  const loaded=await loadGame();
+  state=loaded?migrate(loaded):freshState();
+  applyOfflineDecay();
+  renderAll();
+  requestAnimationFrame(frame);
+  setInterval(tick,3500);
+  if(state.firstRun){state.firstRun=false;saveGame();setTimeout(()=>pushMsg("Tap a cat to select & pet it 💗",false),700);}
+}
+init();
+</script>
+</body>
+</html>
