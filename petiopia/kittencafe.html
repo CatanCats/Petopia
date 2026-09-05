@@ -793,7 +793,7 @@ void main(){
 }`;
 
 function makeGL(canvas){
-  const gl=canvas.getContext("webgl2",{alpha:true,antialias:false,premultipliedAlpha:true,powerPreference:"low-power"});
+  const gl=canvas.getContext("webgl2",{alpha:true,antialias:true,premultipliedAlpha:true,powerPreference:"low-power"});
   if(!gl) return null;
   function sh(type,src){ const s=gl.createShader(type); gl.shaderSource(s,src); gl.compileShader(s);
     if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){ LOG("shader:",gl.getShaderInfoLog(s)); return null; } return s; }
@@ -3000,12 +3000,14 @@ function bindStage(){
     if(e.target.closest(".decoBar")||e.target.closest(".nameChip")) return;
     const [x,y]=local(e);
     moved=false; sx0=x; sy0=y; cam0=View.camX; lastX=x; lastT=performance.now(); vel=0;
-    if(Deco.on){
-      const hit=Deco.hitTest(x,y);
-      if(hit){ mode="item"; Deco.dragging=hit; document.getElementById("dbStore").style.display="block";
-        try{ st.setPointerCapture(e.pointerId); }catch(_){}
-        return; }
-    }
+    /* Furniture is always grabbable, not just in decorate mode — matches
+       the older builds where you could just pick things up and move them.
+       Decorate mode still exists for the flip/store menu on a plain tap. */
+    const hit=Deco.hitTest(x,y);
+    if(hit){ mode="item"; Deco.dragging=hit;
+      if(Deco.on) document.getElementById("dbStore").style.display="block";
+      try{ st.setPointerCapture(e.pointerId); }catch(_){}
+      return; }
     mode="pan"; st.classList.add("dragging");
     try{ st.setPointerCapture(e.pointerId); }catch(_){}
   });
@@ -3026,8 +3028,9 @@ function bindStage(){
     const [x,y]=local(e);
     st.classList.remove("dragging");
     if(mode==="item"){
-      if(!moved && Deco.dragging){ showItemMenu(Deco.dragging); }
+      if(!moved && Deco.dragging){ if(Deco.on) showItemMenu(Deco.dragging); else useFurniture(Deco.dragging); }
       else { invalidateFx(activeRoom()); saveGame(); }
+      if(!Deco.on){ Deco.dragging=null; document.getElementById("dbStore").style.display="none"; }
     } else if(mode==="pan"){
       if(!moved) tapWorld(x,y);
       else View.camTarget=clamp(View.camX-vel*220,0,View.maxCam());   // gentle flick
