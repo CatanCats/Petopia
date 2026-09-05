@@ -3648,27 +3648,29 @@ function refreshSheet(){
   hydrateThumbs();
 }
 
-/* lazy thumbnails: only paint what's actually on screen */
-let thumbObserver=null;
+/* Thumbnails used to be lazy-painted behind an IntersectionObserver scoped
+   to the sliding sheet panel. That combination (a custom scroll root inside
+   a CSS-transform-animated container) is unreliable across browsers — the
+   observer can simply never fire, leaving every card's art blank forever
+   while its name/price/heart (plain HTML) render fine. Each thumbnail is a
+   cached ~96px canvas draw, cheap enough to just paint immediately. */
 function hydrateThumbs(){
-  const nodes=document.querySelectorAll("[data-thumb]:not([data-done])");
-  if(!nodes.length) return;
-  if(typeof IntersectionObserver==="undefined"){          // very old browsers: just paint them
-    nodes.forEach(el=>{ const it=ITEM_BY_ID[el.dataset.thumb];
-      if(it) el.appendChild(thumbFor(it,96).cloneNode(true)); el.dataset.done="1"; });
-    return;
-  }
-  if(!thumbObserver){
-    thumbObserver=new IntersectionObserver(es=>{
-      for(const e of es){
-        if(!e.isIntersecting) continue;
-        const el=e.target, it=ITEM_BY_ID[el.dataset.thumb];
-        if(it){ el.appendChild(thumbFor(it,96).cloneNode(true)); }
-        el.dataset.done="1"; thumbObserver.unobserve(el);
-      }
-    },{root:document.getElementById("sheetBody"),rootMargin:"180px"});
-  }
-  nodes.forEach(n=>thumbObserver.observe(n));
+  document.querySelectorAll("[data-thumb]:not([data-done])").forEach(el=>{
+    const it=ITEM_BY_ID[el.dataset.thumb];
+    if(it){
+      /* thumbFor() caches one shared canvas per item so it's only painted
+         once — but canvas.cloneNode() copies just the width/height
+         attributes, never the drawn pixels, so every card using the cache
+         ended up with a blank canvas. Copy the pixels with drawImage
+         instead of cloning the node. */
+      const src=thumbFor(it,96);
+      const out=document.createElement("canvas");
+      out.width=src.width; out.height=src.height;
+      out.getContext("2d").drawImage(src,0,0);
+      el.appendChild(out);
+    }
+    el.dataset.done="1";
+  });
 }
 
 function gcard(it){
