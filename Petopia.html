@@ -937,7 +937,7 @@ function make2D(canvas){
    café works fine without that folder), or a slow generative loop keyed to
    the room's theme when there's nothing to play. SFX are always synthesised
    short shaped envelopes, no files needed.                                 */
-const SONGS_DIR="../Songs/";
+const SONGS_DIR="petiopia/Songs/";
 const SONGS=[
   "Cartoon Rush.mp3","Cartoon Rush (2).mp3","Cartoon Rush (4).mp3",
   "Charm Loop.mp3","Charm Loop (1).mp3",
@@ -4702,11 +4702,24 @@ function bindUI(){
     if(e.key==="ArrowLeft") View.camTarget=clamp(View.camTarget-90,0,View.maxCam());
     if(e.key==="ArrowRight") View.camTarget=clamp(View.camTarget+90,0,View.maxCam());
   });
-  // one-time gesture unlock for WebAudio
+  // one-time gesture unlock for WebAudio + the real <audio> track element.
+  // Browsers block audio.play() until a user gesture; startMusic() had
+  // already created Audio.el during init (so it exists but is paused), and
+  // its own early-return guard (`||this.el`) then skipped ever retrying —
+  // meaning background music silently never actually started. Retry the
+  // paused element directly instead of going back through startMusic().
   const unlock=()=>{ Audio.ensure(); Audio.resume();
-    if(state.settings.music) Audio.startMusic();
-    removeEventListener("pointerdown",unlock); };
+    if(state.settings.music){
+      if(Audio.el){ if(Audio.el.paused) Audio.el.play().catch(()=>{}); }
+      else Audio.startMusic();
+    }
+    removeEventListener("pointerdown",unlock);
+    removeEventListener("touchstart",unlock);
+    removeEventListener("keydown",unlock);
+  };
   addEventListener("pointerdown",unlock);
+  addEventListener("touchstart",unlock);
+  addEventListener("keydown",unlock);
 }
 
 /* migrate a v3/v4 save into the new shape rather than wiping it */
