@@ -31,11 +31,10 @@ Music notice
 The background tracks bundled in /Songs were generated with Suno
 (https://suno.com) under a Pro subscription. They are included here for use
 within this project under the terms Suno grants Pro-tier subscribers for
-generated output. Suno's terms of service — not this repository's CC
+generated output. Suno's terms of service, not this repository's CC
 BY-NC-SA license — govern what you may do with those audio files
 specifically; the CC BY-NC-SA license above covers this project's own code,
 art, and design, not the third-party-generated audio. If you fork or reuse
 this project, check Suno's current terms (https://suno.com/terms) before
-redistributing or relying on the tracks in /Songs, and swap in your own
-audio if you're not covered by an equivalent subscription — the game runs
-fine without them (see Settings → Sound & settings).
+redistributing or relying on the tracks, although many countries do not
+grant AI content copyright protection at all.
