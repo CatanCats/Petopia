@@ -3870,7 +3870,25 @@ menu(){
     <div class="item selectable" data-open="storage"><div class="big">📦</div><div class="info"><div class="nm">Storage</div><div class="ds">Place things you own into this room.</div></div></div>
     <div class="item selectable" data-decorate="1"><div class="big">🎨</div><div class="info"><div class="nm">Decorate mode</div><div class="ds">Dim the sim and rearrange the room on a grid.</div></div></div>
     <div class="item selectable" data-photo="1"><div class="big">📸</div><div class="info"><div class="nm">Photo mode</div><div class="ds">Snap your room and cats.</div></div></div>
-    <div class="item selectable" data-open="settings"><div class="big">⚙️</div><div class="info"><div class="nm">Sound & settings</div><div class="ds">Music, effects, lighting.</div></div></div>`};
+    <div class="item selectable" data-open="settings"><div class="big">⚙️</div><div class="info"><div class="nm">Sound & settings</div><div class="ds">Music, effects, lighting.</div></div></div>
+    <div class="item selectable" data-open="license"><div class="big">📜</div><div class="info"><div class="nm">Licence & credits</div><div class="ds">Catan · CC BY-NC-SA 4.0 · music notice.</div></div></div>`};
+},
+/* ── licence & credits ── */
+license(){
+  return {h:`<h2>📜 Licence & credits</h2>`,
+    b:`<div class="coltitle">Licence</div>
+    <div class="item"><div class="big">©</div><div class="info"><div class="nm">Kitten Café (Petopia)</div>
+      <div class="ds">© ${new Date().getFullYear()} Catan. Licensed under
+      <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a>
+      — Attribution, NonCommercial, ShareAlike. Give credit to Catan, don't sell it, share
+      any remix under the same licence.</div></div></div>
+    <div class="coltitle">Music</div>
+    <div class="item"><div class="big">🎵</div><div class="info"><div class="nm">Background tracks</div>
+      <div class="ds">The songs in the café's music player were generated with
+      <a href="https://suno.com" target="_blank" rel="noopener">Suno</a> under a Pro subscription and are used here
+      under Suno's terms for Pro-tier generated output — those terms govern the audio itself, separately from this
+      project's own CC BY-NC-SA licence. Check <a href="https://suno.com/terms" target="_blank" rel="noopener">Suno's current terms</a>
+      before reusing them elsewhere. Sound effects and the fallback music loop are fully synthesised, no licence needed.</div></div></div>`};
 },
 /* ── storage / inventory ── */
 storage(){
