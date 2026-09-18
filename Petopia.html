@@ -88,7 +88,7 @@ input,button,textarea{font-family:inherit;color:inherit;}
 .stage{position:relative;border-radius:24px;overflow:hidden;height:340px;
   background:linear-gradient(180deg,var(--wall-1),var(--wall-2));
   box-shadow:0 12px 28px var(--shadow),inset 0 0 0 4px rgba(255,255,255,.38);
-  touch-action:pan-y;cursor:grab;}
+  touch-action:none;cursor:grab;}
 .stage.dragging{cursor:grabbing;}
 .stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;}
 #glRoom{z-index:1;}
@@ -1827,7 +1827,7 @@ function priceNice(v){ return v<100?Math.round(v/5)*5:v<1000?Math.round(v/10)*10
 
 /* A small free starter kit so a new café isn't a bare box.
    Everything else has to be earned. */
-const FREE_ITEMS=["w_cream","f_oak","i_window_sky","i_catBed_oat","i_litterBox_drift"];
+const FREE_ITEMS=["w_cream","f_oak","i_window_sky","i_catBed_oat","i_litterBox_gum"];
 for(const id of FREE_ITEMS){ const it=ITEM_BY_ID[id]; if(it){ it.price=0; it.free=true; } }
 
 /* ═══════════════════════ 7. CATS ═══════════════════════ */
@@ -2110,7 +2110,7 @@ function freshState(){
   for(const id of FREE_ITEMS) s.owned[id]=1;
   const win={u:uid("p"), item:"i_window_sky",      x:0.62, y:0.30, flip:1};
   const bed={u:uid("p"), item:"i_catBed_oat",      x:0.30, y:0.80, flip:1};
-  const lit={u:uid("p"), item:"i_litterBox_drift", x:0.82, y:0.78, flip:1};
+  const lit={u:uid("p"), item:"i_litterBox_gum", x:0.82, y:0.78, flip:1};
   room.placed=[win,bed,lit];
   room.litterClean[lit.u]=100;
   generateShelter();
@@ -2947,13 +2947,19 @@ const Deco={
   hitTest(sx,sy){
     const r=activeRoom(), V=View;
     const list=r.placed.slice().sort((a,b)=>b.y-a.y);
+    /* Real fingers never land pixel-perfect, and the box below had zero
+       tolerance right at the item's bottom anchor line — a tap a fraction
+       of a pixel off (easily happens from screen DPI rounding alone, let
+       alone an actual imprecise touch) missed the item entirely. Pad the
+       hitbox generously so picking things up is forgiving, not exact. */
+    const PAD=14;
     for(const p of list){
       const it=ITEM_BY_ID[p.item]; if(!it||it.kind!=="furni") continue;
       const t=Math.max(0,(p.y-HORIZON)/(1-HORIZON));
       const sc=it.zone==="wall"?1:(0.74+t*0.46);
       const w=it.w*sc, h=w;
       const cx=p.x*V.worldW-V.camX, cy=p.y*V.h;
-      if(sx>=cx-w/2&&sx<=cx+w/2&&sy>=cy-h&&sy<=cy) return p;
+      if(sx>=cx-w/2-PAD&&sx<=cx+w/2+PAD&&sy>=cy-h-PAD&&sy<=cy+PAD) return p;
     }
     return null;
   },
@@ -4702,9 +4708,9 @@ function migrate(s){
     r.poops=(r.poops||[]).map(p=>({id:p.id||uid("p"),x:p.x!==undefined?p.x:rnd(0.2,0.8),y:p.y>0.6?p.y:rnd(0.72,0.92)}));
     // old saves kept litter boxes and feeders as separate arrays — turn them into real furniture
     (r.litters||[]).forEach(b=>{
-      const p={u:uid("p"),item:"i_litterBox_drift",x:clamp(b.x||rnd(0.1,0.9),0.05,0.95),y:rnd(0.74,0.9),flip:1};
+      const p={u:uid("p"),item:"i_litterBox_gum",x:clamp(b.x||rnd(0.1,0.9),0.05,0.95),y:rnd(0.74,0.9),flip:1};
       r.placed.push(p); r.litterClean[p.u]=b.clean===undefined?100:b.clean;
-      s.owned["i_litterBox_drift"]=1;
+      s.owned["i_litterBox_gum"]=1;
     });
     if(r.feeder&&r.feeder.level){
       const p={u:uid("p"),item:"i_autoFeeder_oat",x:rnd(0.15,0.85),y:rnd(0.74,0.9),flip:1};
