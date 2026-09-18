@@ -950,7 +950,7 @@ const SONGS=[
 const Audio={
   ac:null, master:null, musicGain:null, sfxGain:null,
   musicOn:true, sfxOn:true, musicVol:0.34, sfxVol:0.7,
-  realOn:true, realFailed:false, el:null, elRouted:false, elSrc:null, playlist:[], pl:0,
+  realOn:true, realFailed:false, el:null, playlist:[], pl:0,
   timer:null, step:0, scaleName:"cosy", started:false,
   SCALES:{
     cosy:[0,2,4,7,9,12,14,16], night:[0,3,5,7,10,12,15,17], bright:[0,2,4,6,7,11,12,14],
@@ -979,12 +979,12 @@ const Audio={
   resume(){ const ac=this.ensure(); if(ac&&ac.state==="suspended") ac.resume(); },
   setMusic(on){ this.musicOn=on;
     if(this.musicGain) this.musicGain.gain.value=on?this.musicVol:0;
-    if(this.el&&!this.elRouted) this.el.volume=on?this.musicVol:0;
+    if(this.el) this.el.volume=on?this.musicVol:0;
     if(on) this.startMusic(); else this.stopMusic(); },
   setSfx(on){ this.sfxOn=on; if(this.sfxGain) this.sfxGain.gain.value=on?this.sfxVol:0; },
   setMusicVol(v){ this.musicVol=v;
     if(this.musicGain&&this.musicOn) this.musicGain.gain.value=v;
-    if(this.el&&!this.elRouted&&this.musicOn) this.el.volume=v; },
+    if(this.el&&this.musicOn) this.el.volume=v; },
   setSfxVol(v){ this.sfxVol=v; if(this.sfxGain&&this.sfxOn) this.sfxGain.gain.value=v; },
   setScale(name){ if(this.SCALES[name]) this.scaleName=name; },
   /* prefer real songs from ../Songs when the setting's on and they load
@@ -1009,20 +1009,23 @@ const Audio={
   _startReal(){
     if(!window.Audio) return false;
     this._shuffle();
+    this._realStrikes=0;
     const el=new window.Audio();
     el.preload="auto";
+    el.volume=this.musicOn?this.musicVol:0;
     el.addEventListener("ended",()=>this._nextReal());
-    el.addEventListener("error",()=>{
-      LOG("song failed to load — falling back to the generative loop");
-      this.realFailed=true; this._stopReal();
-      if(this.musicOn) this._startGenerative();
-    });
-    this.el=el; this.elRouted=false;
-    try{
-      const ac=this.ensure();
-      if(ac){ this.elSrc=ac.createMediaElementSource(el); this.elSrc.connect(this.musicGain); this.elRouted=true; }
-      else el.volume=this.musicVol;
-    }catch(e){ LOG("song routing unavailable:",e.message); el.volume=this.musicVol; }
+    el.addEventListener("playing",()=>{ this._realStrikes=0; });
+    el.addEventListener("error",()=>this._realTrackFailed());
+    /* Deliberately NOT routed through the WebAudio graph via
+       createMediaElementSource(): opened over file:// (the normal way
+       someone opens a downloaded copy of this game), Chrome silently
+       outputs zeroes for a MediaElementSource fed from a file:// <audio>
+       element — the track "plays" (currentTime advances) but is
+       completely silent, with no error anywhere to explain why. Plain
+       element playback with its own .volume has none of that risk, at
+       the cost of the music slider being a second, independent volume
+       control from the SFX one instead of sharing one audio graph. */
+    this.el=el;
     this._playTrack();
     return true;
   },
@@ -1036,7 +1039,22 @@ const Audio={
     this.pl++; if(this.pl>=this.playlist.length) this._shuffle();
     this._playTrack();
   },
-  _stopReal(){ if(this.el){ this.el.pause(); this.el.removeAttribute("src"); this.el.load(); this.el=null; this.elSrc=null; } },
+  /* One missing/corrupt file (an incomplete download, a track someone
+     removed to save space) shouldn't kill real music for the rest of the
+     session — only give up and fall back to generative once every track
+     in the playlist has failed in a row without a single one playing. */
+  _realTrackFailed(){
+    this._realStrikes=(this._realStrikes||0)+1;
+    if(this._realStrikes>=this.playlist.length){
+      LOG("no playable songs found — falling back to the generative loop");
+      this.realFailed=true; this._stopReal();
+      if(this.musicOn) this._startGenerative();
+      return;
+    }
+    this.pl++; if(this.pl>=this.playlist.length) this._shuffle();
+    this._playTrack();
+  },
+  _stopReal(){ if(this.el){ this.el.pause(); this.el.removeAttribute("src"); this.el.load(); this.el=null; } },
   _startGenerative(){
     if(!this.ensure()||!this.musicOn||this.timer) return;
     this.started=true;
