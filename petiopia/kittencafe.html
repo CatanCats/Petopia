@@ -663,7 +663,7 @@ const Particles={
    Every shape is painted once, bottom-aligned inside a 128px cell, in pure
    luminance. The GPU re-colours it with a two-tone ramp, so one small texture
    dresses hundreds of differently-coloured items.                           */
-const CELL=96, ATLAS_COLS=8;
+const CELL=128, ATLAS_COLS=8;
 let ATLAS_W=CELL*ATLAS_COLS, ATLAS_H=CELL*ATLAS_COLS;
 const Atlas={ canvas:null, index:{}, order:[], tex:null, dirty:true,
   build(){

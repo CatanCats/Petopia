@@ -71,6 +71,7 @@ input,button,textarea{font-family:inherit;color:inherit;}
 .icon-btn{width:38px;height:38px;border:none;border-radius:13px;background:var(--card);box-shadow:0 4px 0 var(--shadow);
   font-size:17px;cursor:pointer;color:var(--ink);display:grid;place-items:center;transition:transform .08s,box-shadow .08s;position:relative;}
 .icon-btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--shadow);}
+.icon-btn.active{background:var(--mint-d);color:#fff;box-shadow:0 4px 0 rgba(116,187,164,.55);}
 .icon-btn .dot{position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;border-radius:9px;background:var(--coral-d);
   color:#fff;font-size:9.5px;font-weight:900;display:grid;place-items:center;padding:0 4px;border:2px solid var(--cream);}
 
@@ -182,6 +183,7 @@ input,button,textarea{font-family:inherit;color:inherit;}
 .dangerBanner{position:absolute;left:50%;top:8px;transform:translateX(-50%);background:#D9534F;color:#fff;font-weight:800;
   font-size:11.5px;padding:6px 12px;border-radius:999px;box-shadow:0 4px 10px rgba(160,40,40,.4);z-index:13;display:none;
   animation:pulse 1s ease-in-out infinite;white-space:nowrap;max-width:92%;overflow:hidden;text-overflow:ellipsis;}
+.dangerBanner.away{background:var(--sleep,#8E7CC3);box-shadow:0 4px 10px rgba(90,70,150,.4);cursor:pointer;}
 @keyframes pulse{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.05)}}
 .timeChip{position:absolute;top:8px;right:8px;background:rgba(255,253,248,.9);border-radius:999px;padding:3px 10px;
   font-family:'Fredoka';font-weight:600;font-size:11px;color:#5A4636;box-shadow:0 2px 0 var(--shadow-s);z-index:12;display:flex;gap:5px;align-items:center;}
@@ -445,12 +447,22 @@ input,button,textarea{font-family:inherit;color:inherit;}
 </style>
 </head>
 <body>
+<div id="fatalError" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(30,20,15,.92);color:#fff;
+  font-family:system-ui,sans-serif;padding:24px;box-sizing:border-box;flex-direction:column;align-items:center;
+  justify-content:center;text-align:center;gap:12px;">
+  <div style="font-size:38px;">🙀</div>
+  <div style="font-size:17px;font-weight:700;">Kitten Café hit a snag and couldn't start</div>
+  <div id="fatalErrorMsg" style="font-size:12px;opacity:.8;max-width:420px;white-space:pre-wrap;word-break:break-word;"></div>
+  <button onclick="location.reload()" style="margin-top:8px;padding:10px 22px;border:none;border-radius:12px;
+    background:#F08C6E;color:#fff;font-weight:700;font-size:14px;cursor:pointer;">Reload</button>
+</div>
 <div class="app">
   <div class="topbar">
     <div class="logo"><span class="paw">🐾</span>Kitten&nbsp;Café</div>
     <div class="right-tools">
       <div class="streak" id="streakChip" title="Daily care streak">🔥<span id="streakN">0</span></div>
       <div class="wallet" id="wallet"><span class="coin">✦</span><span id="pts">0</span></div>
+      <button class="icon-btn" id="decoBtn" aria-label="Decorate — drag furniture">🎨</button>
       <button class="icon-btn" id="menuBtn" aria-label="Menu">☰<span class="dot" id="menuDot" style="display:none">!</span></button>
     </div>
   </div>
@@ -651,7 +663,7 @@ const Particles={
    Every shape is painted once, bottom-aligned inside a 128px cell, in pure
    luminance. The GPU re-colours it with a two-tone ramp, so one small texture
    dresses hundreds of differently-coloured items.                           */
-const CELL=96, ATLAS_COLS=8;
+const CELL=128, ATLAS_COLS=8;
 let ATLAS_W=CELL*ATLAS_COLS, ATLAS_H=CELL*ATLAS_COLS;
 const Atlas={ canvas:null, index:{}, order:[], tex:null, dirty:true,
   build(){
@@ -921,11 +933,24 @@ function make2D(canvas){
 }
 
 /* ═══════════════════════ 4. AUDIO ═══════════════════════
-   Everything is synthesised — no files to load. Music is a slow generative
-   loop keyed to the room's theme; SFX are short shaped envelopes.           */
+   Music has two sources: real recorded tracks in ../Songs (optional — the
+   café works fine without that folder), or a slow generative loop keyed to
+   the room's theme when there's nothing to play. SFX are always synthesised
+   short shaped envelopes, no files needed.                                 */
+const SONGS_DIR="../Songs/";
+const SONGS=[
+  "Cartoon Rush.mp3","Cartoon Rush (2).mp3","Cartoon Rush (4).mp3",
+  "Charm Loop.mp3","Charm Loop (1).mp3",
+  "Chiming in the Rain (1).mp3","Chiming in the Rain (2).mp3","Chiming in the Rain (3).mp3",
+  "Cozy Corner.mp3","Cozy Corner (1).mp3","Cozy Corner (2).mp3",
+  "Cozy Morning Loop.mp3","Cozy Morning Loop (1).mp3","Cozy Morning Loop (2).mp3","Cozy Morning Loop (3).mp3",
+  "Level Up Your Day.mp3","Level Up Your Day (1).mp3",
+  "pizzicato pop.mp3","pizzicato pop (1).mp3"
+];
 const Audio={
   ac:null, master:null, musicGain:null, sfxGain:null,
   musicOn:true, sfxOn:true, musicVol:0.34, sfxVol:0.7,
+  realOn:true, realFailed:false, el:null, elRouted:false, elSrc:null, playlist:[], pl:0,
   timer:null, step:0, scaleName:"cosy", started:false,
   SCALES:{
     cosy:[0,2,4,7,9,12,14,16], night:[0,3,5,7,10,12,15,17], bright:[0,2,4,6,7,11,12,14],
@@ -952,13 +977,67 @@ const Audio={
     return b;
   },
   resume(){ const ac=this.ensure(); if(ac&&ac.state==="suspended") ac.resume(); },
-  setMusic(on){ this.musicOn=on; if(this.musicGain) this.musicGain.gain.value=on?this.musicVol:0;
+  setMusic(on){ this.musicOn=on;
+    if(this.musicGain) this.musicGain.gain.value=on?this.musicVol:0;
+    if(this.el&&!this.elRouted) this.el.volume=on?this.musicVol:0;
     if(on) this.startMusic(); else this.stopMusic(); },
   setSfx(on){ this.sfxOn=on; if(this.sfxGain) this.sfxGain.gain.value=on?this.sfxVol:0; },
-  setMusicVol(v){ this.musicVol=v; if(this.musicGain&&this.musicOn) this.musicGain.gain.value=v; },
+  setMusicVol(v){ this.musicVol=v;
+    if(this.musicGain&&this.musicOn) this.musicGain.gain.value=v;
+    if(this.el&&!this.elRouted&&this.musicOn) this.el.volume=v; },
   setSfxVol(v){ this.sfxVol=v; if(this.sfxGain&&this.sfxOn) this.sfxGain.gain.value=v; },
   setScale(name){ if(this.SCALES[name]) this.scaleName=name; },
+  /* prefer real songs from ../Songs when the setting's on and they load
+     fine; fall back to the generative loop the moment a track errors out
+     (missing folder, blocked mime type, whatever) so music never just stops. */
+  setRealMusic(on){ this.realOn=on; if(this.musicOn){ this.stopMusic(); this.startMusic(); } },
   startMusic(){
+    if(!this.musicOn||this.timer||this.el) return;
+    if(this.realOn&&!this.realFailed&&SONGS.length&&this._startReal()) return;
+    this._startGenerative();
+  },
+  stopMusic(){
+    this._stopReal();
+    if(this.timer){ clearInterval(this.timer); this.timer=null; }
+  },
+  _shuffle(){
+    this.playlist=SONGS.slice();
+    for(let i=this.playlist.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1));
+      [this.playlist[i],this.playlist[j]]=[this.playlist[j],this.playlist[i]]; }
+    this.pl=0;
+  },
+  _startReal(){
+    if(!window.Audio) return false;
+    this._shuffle();
+    const el=new window.Audio();
+    el.preload="auto";
+    el.addEventListener("ended",()=>this._nextReal());
+    el.addEventListener("error",()=>{
+      LOG("song failed to load — falling back to the generative loop");
+      this.realFailed=true; this._stopReal();
+      if(this.musicOn) this._startGenerative();
+    });
+    this.el=el; this.elRouted=false;
+    try{
+      const ac=this.ensure();
+      if(ac){ this.elSrc=ac.createMediaElementSource(el); this.elSrc.connect(this.musicGain); this.elRouted=true; }
+      else el.volume=this.musicVol;
+    }catch(e){ LOG("song routing unavailable:",e.message); el.volume=this.musicVol; }
+    this._playTrack();
+    return true;
+  },
+  _playTrack(){
+    if(!this.el) return;
+    this.el.src=SONGS_DIR+encodeURIComponent(this.playlist[this.pl%this.playlist.length]);
+    this.el.play().catch(e=>LOG("song playback needs a tap first:",e.message));
+  },
+  _nextReal(){
+    if(!this.el) return;
+    this.pl++; if(this.pl>=this.playlist.length) this._shuffle();
+    this._playTrack();
+  },
+  _stopReal(){ if(this.el){ this.el.pause(); this.el.removeAttribute("src"); this.el.load(); this.el=null; this.elSrc=null; } },
+  _startGenerative(){
     if(!this.ensure()||!this.musicOn||this.timer) return;
     this.started=true;
     const beat=()=>{
@@ -974,7 +1053,6 @@ const Audio={
     };
     this.timer=setInterval(beat,640);
   },
-  stopMusic(){ if(this.timer){ clearInterval(this.timer); this.timer=null; } },
   _pad(f,dur){
     const ac=this.ac; if(!ac) return; const t=ac.currentTime;
     const g=ac.createGain(); g.gain.setValueAtTime(0,t);
@@ -2022,7 +2100,7 @@ function freshState(){
     earnWindowStart:now(), earnedThisHour:0, coinCapBonus:0,
     ach:{}, quests:null, questDay:null, streak:0, lastCareDay:null,
     seen:{}, stats:{fed:0,cleaned:0,games:0,bred:0,pets:0,placed:0,spent:0,rubs:0},
-    settings:{music:true,sfx:true,musicVol:0.34,sfxVol:0.7,dayNight:true,particles:true},
+    settings:{music:true,sfx:true,musicVol:0.34,sfxVol:0.7,dayNight:true,particles:true,awayMode:true,realMusic:true},
     lastSeen:now()
   };
   state=s;
@@ -2041,7 +2119,8 @@ function freshState(){
 
 const getRoom=id=>state.rooms.find(r=>r.id===id);
 const activeRoom=()=>getRoom(state.activeRoom)||state.rooms[0];
-const catsIn=rid=>state.cats.filter(c=>c.roomId===rid);
+const catsIn=rid=>state.cats.filter(c=>c.roomId===rid&&!c.away);
+const awayCats=()=>state.cats.filter(c=>c.away);
 const roomCap=r=>ROOM_KINDS[r.kind].cap;
 const roomWidth=r=>ROOM_KINDS[r.kind].width;
 const residentsOf=rid=>state.cats.filter(c=>(c.homeRoom||c.roomId)===rid);
@@ -2051,7 +2130,7 @@ const wellbeing=c=>(c.tummy+c.mood+c.energy+c.hygiene)/4;
 const healthFactor=c=>0.35+0.65*(wellbeing(c)/100);
 const isBreeding=c=>!!(state&&state.breeding&&(state.breeding.f===c.id||state.breeding.m===c.id));
 const hasRoomSpace=()=>state.rooms.some(r=>roomHasResidentSpace(r));
-const canBreed=c=>stageIndex(c)>=1&&!c.sick&&!isBreeding(c)&&c.tummy>80&&c.energy>80&&c.bond>=25;
+const canBreed=c=>stageIndex(c)>=1&&!c.sick&&!c.away&&!isBreeding(c)&&c.tummy>80&&c.energy>80&&c.bond>=25;
 const sexSym=s=>s==="female"?'<span style="color:#E86D9A">♀</span>':'<span style="color:#5B8DD6">♂</span>';
 const owns=id=>!!(state.owned&&state.owned[id]);
 function stageIndex(c){ let i=0; for(const s of STAGES){ if(s.until===null||c.growth<s.until) return i; i++; } return STAGES.length-1; }
@@ -2102,6 +2181,25 @@ const View={
     this.measure();
     markRoomDirty();
     addEventListener("resize",()=>this.measure(),{passive:true});
+    /* A lost WebGL context (GPU reclaimed after the tab was backgrounded,
+       a driver reset, low memory) otherwise leaves the room permanently
+       blank with no error — the classic "no pictures" report. Rebuild
+       on restore instead of just going dark forever. */
+    [rc,fc].forEach(cv=>{
+      cv.addEventListener("webglcontextlost",e=>{ e.preventDefault(); LOG("webgl context lost"); },false);
+      cv.addEventListener("webglcontextrestored",()=>{ LOG("webgl context restored"); this.rebuildGL(); },false);
+    });
+  },
+  rebuildGL(){
+    const rc=document.getElementById("glRoom"), fc=document.getElementById("glFx");
+    const newRoom=makeGL(rc);
+    this.room=newRoom||make2D(rc); this.mode2D=!newRoom;
+    this.fx=makeGL(fc)||make2D(fc);
+    this.measure();
+    Atlas.build();
+    this.room.uploadAtlas(Atlas.canvas);
+    this.fx.uploadAtlas(Atlas.canvas);
+    markRoomDirty();
   },
   measure(){
     const r=this.stage.getBoundingClientRect();
@@ -2389,9 +2487,15 @@ function renderHUD(){
   setBar("bond", c.bond||0, `Lv${bondLevel(c)}`);
   document.getElementById("sleepLbl").textContent=c.sleeping?"Wake":"Sleep";
   document.getElementById("sleepEmoji").textContent=c.sleeping?"☀️":"😴";
-  const endangered=state.cats.filter(x=>x.danger>=2);
+  const endangered=state.cats.filter(x=>x.danger>=2&&!x.away);
+  const missing=awayCats();
   const db=document.getElementById("dangerBanner");
-  if(endangered.length){
+  db.classList.remove("away"); db.onclick=null;
+  if(missing.length){
+    db.textContent=`🚪 ${missing.map(x=>x.name).join(", ")} ${missing.length>1?"are":"is"} missing — tap to play the Homeward Maze`;
+    db.classList.add("away"); db.onclick=()=>startHomewardMaze(missing[0]);
+    db.style.display="block";
+  } else if(endangered.length){
     const worst=endangered.slice().sort((a,b)=>b.danger-a.danger)[0];
     db.textContent=(worst.danger>=6?"⚠️ ":"💔 ")+endangered.map(x=>x.name).join(", ")+(endangered.length>1?" need help!":" needs help!");
     db.style.display="block";
@@ -2832,6 +2936,7 @@ const Deco={
   toggle(v){
     this.on=v===undefined?!this.on:v; markRoomDirty();
     document.body.classList.toggle("decorating",this.on);
+    const db=document.getElementById("decoBtn"); if(db) db.classList.toggle("active",this.on);
     document.getElementById("hint").textContent=this.on
       ? "Drag pieces to move them · tap one to flip or store it"
       : "Drag the room sideways to explore · tap a cat to pet it 💗";
@@ -2895,12 +3000,14 @@ function bindStage(){
     if(e.target.closest(".decoBar")||e.target.closest(".nameChip")) return;
     const [x,y]=local(e);
     moved=false; sx0=x; sy0=y; cam0=View.camX; lastX=x; lastT=performance.now(); vel=0;
-    if(Deco.on){
-      const hit=Deco.hitTest(x,y);
-      if(hit){ mode="item"; Deco.dragging=hit; document.getElementById("dbStore").style.display="block";
-        try{ st.setPointerCapture(e.pointerId); }catch(_){}
-        return; }
-    }
+    /* Furniture is always grabbable, not just in decorate mode — matches
+       the older builds where you could just pick things up and move them.
+       Decorate mode still exists for the flip/store menu on a plain tap. */
+    const hit=Deco.hitTest(x,y);
+    if(hit){ mode="item"; Deco.dragging=hit;
+      if(Deco.on) document.getElementById("dbStore").style.display="block";
+      try{ st.setPointerCapture(e.pointerId); }catch(_){}
+      return; }
     mode="pan"; st.classList.add("dragging");
     try{ st.setPointerCapture(e.pointerId); }catch(_){}
   });
@@ -2921,8 +3028,9 @@ function bindStage(){
     const [x,y]=local(e);
     st.classList.remove("dragging");
     if(mode==="item"){
-      if(!moved && Deco.dragging){ showItemMenu(Deco.dragging); }
+      if(!moved && Deco.dragging){ if(Deco.on) showItemMenu(Deco.dragging); else useFurniture(Deco.dragging); }
       else { invalidateFx(activeRoom()); saveGame(); }
+      if(!Deco.on){ Deco.dragging=null; document.getElementById("dbStore").style.display="none"; }
     } else if(mode==="pan"){
       if(!moved) tapWorld(x,y);
       else View.camTarget=clamp(View.camX-vel*220,0,View.maxCam());   // gentle flick
@@ -3218,6 +3326,11 @@ function moveCatToAdjacentRoom(c){
 /* ═══════════════════════ 21. FRAME LOOP ═══════════════════════ */
 let fpsAcc=0, fpsN=0;
 function frame(ts){
+  /* Backgrounded tabs still get throttled rAF ticks in most browsers, but
+     not reliably inside every wrapped WebView — skip the WebGL draws and
+     particle sim ourselves rather than trust that, so a hidden café isn't
+     quietly burning GPU/battery. */
+  if(document.hidden){ lastFrame=ts; requestAnimationFrame(frame); return; }
   const dt=Math.min(0.05,(ts-lastFrame)/1000||0);
   lastFrame=ts;
   if(state){
@@ -3264,7 +3377,7 @@ function frame(ts){
 /* ═══════════════════════ 22. STAT TICK ═══════════════════════ */
 function tick(){
   if(!state) return;
-  const dead=[], slot=daySlot();
+  const dead=[], away=[], slot=daySlot();
   for(const room of state.rooms){
     const here=catsIn(room.id);
     const fx=roomFx(room);
@@ -3332,7 +3445,7 @@ function tick(){
         c.danger=(c.danger||0)+1;
         if(c.danger===2) pushMsg(`💔 ${c.name} is very weak — feed and clean them now`,true);
         else if(c.danger===6) pushMsg(`⚠️ ${c.name} IS FADING FAST! Help immediately`,true);
-        if(c.danger>=10) dead.push(c.id);
+        if(c.danger>=10){ if(state.settings.awayMode) away.push(c.id); else dead.push(c.id); }
       } else if(wb>30&&c.tummy>10) c.danger=0;
       // slow, earned bond growth for cats kept genuinely well
       if(wb>78&&!c.sick) c.bond=clamp(c.bond+0.05);
@@ -3361,6 +3474,18 @@ function tick(){
       const nc=newCat("cream",{roomId:state.activeRoom});
       state.cats=[nc]; state.selected=nc.id;
       setTimeout(()=>pushMsg("A new kitten needs a loving home — take good care this time 🐱",false),2400);
+    }
+  }
+  for(const id of away){
+    const c=state.cats.find(x=>x.id===id);
+    if(!c||c.away) continue;
+    c.away=true; c.sleeping=false; c._sig=null;
+    Audio.sfx("alarm");
+    pushMsg(`🚪 ${c.name} has wandered off looking for food — play the Homeward Maze to bring them back`,true);
+    if(spriteEls[id]){ spriteEls[id].remove(); delete spriteEls[id]; }
+    if(state.selected===id){
+      const h=catsIn(state.activeRoom);
+      state.selected=h[0]?h[0].id:((state.cats.find(x=>!x.away)||{}).id);
     }
   }
   checkAchievements();
@@ -3526,27 +3651,29 @@ function refreshSheet(){
   hydrateThumbs();
 }
 
-/* lazy thumbnails: only paint what's actually on screen */
-let thumbObserver=null;
+/* Thumbnails used to be lazy-painted behind an IntersectionObserver scoped
+   to the sliding sheet panel. That combination (a custom scroll root inside
+   a CSS-transform-animated container) is unreliable across browsers — the
+   observer can simply never fire, leaving every card's art blank forever
+   while its name/price/heart (plain HTML) render fine. Each thumbnail is a
+   cached ~96px canvas draw, cheap enough to just paint immediately. */
 function hydrateThumbs(){
-  const nodes=document.querySelectorAll("[data-thumb]:not([data-done])");
-  if(!nodes.length) return;
-  if(typeof IntersectionObserver==="undefined"){          // very old browsers: just paint them
-    nodes.forEach(el=>{ const it=ITEM_BY_ID[el.dataset.thumb];
-      if(it) el.appendChild(thumbFor(it,96).cloneNode(true)); el.dataset.done="1"; });
-    return;
-  }
-  if(!thumbObserver){
-    thumbObserver=new IntersectionObserver(es=>{
-      for(const e of es){
-        if(!e.isIntersecting) continue;
-        const el=e.target, it=ITEM_BY_ID[el.dataset.thumb];
-        if(it){ el.appendChild(thumbFor(it,96).cloneNode(true)); }
-        el.dataset.done="1"; thumbObserver.unobserve(el);
-      }
-    },{root:document.getElementById("sheetBody"),rootMargin:"180px"});
-  }
-  nodes.forEach(n=>thumbObserver.observe(n));
+  document.querySelectorAll("[data-thumb]:not([data-done])").forEach(el=>{
+    const it=ITEM_BY_ID[el.dataset.thumb];
+    if(it){
+      /* thumbFor() caches one shared canvas per item so it's only painted
+         once — but canvas.cloneNode() copies just the width/height
+         attributes, never the drawn pixels, so every card using the cache
+         ended up with a blank canvas. Copy the pixels with drawImage
+         instead of cloning the node. */
+      const src=thumbFor(it,96);
+      const out=document.createElement("canvas");
+      out.width=src.width; out.height=src.height;
+      out.getContext("2d").drawImage(src,0,0);
+      el.appendChild(out);
+    }
+    el.dataset.done="1";
+  });
 }
 
 function gcard(it){
@@ -3838,13 +3965,15 @@ settings(){
   const S=state.settings;
   const sw=(k,t,d)=>`<div class="switchRow"><div><div class="t">${t}</div><div class="d">${d}</div></div>
     <div class="sw-toggle ${S[k]?"on":""}" data-toggle="${k}"></div></div>`;
-  return {h:`<h2>⚙️ Sound & settings</h2><p class="sub">All synthesised on the fly — nothing to download.</p>`,
-    b:`${sw("music","Background music","A slow generative loop that follows the room's style.")}
+  return {h:`<h2>⚙️ Sound & settings</h2><p class="sub">Sound effects are synthesised on the fly — no files needed for those.</p>`,
+    b:`${sw("music","Background music","Real café songs when available, otherwise a slow generative loop.")}
       <div class="slider"><label>Music</label><input type="range" min="0" max="100" value="${Math.round(S.musicVol*100)}" data-vol="music"><span class="v">${Math.round(S.musicVol*100)}</span></div>
+      ${sw("realMusic","Use café playlist",Audio.realFailed?"Songs folder not found — playing the generative loop instead.":"Recorded songs from the Songs folder instead of the generative loop.")}
       ${sw("sfx","Sound effects","Purrs, meows, coins and fanfares.")}
       <div class="slider"><label>Effects</label><input type="range" min="0" max="100" value="${Math.round(S.sfxVol*100)}" data-vol="sfx"><span class="v">${Math.round(S.sfxVol*100)}</span></div>
       ${sw("dayNight","Day & night lighting","The room dims after dark. Lamps push it back.")}
       ${sw("particles","Particle effects","Dust motes, confetti, petals and sparkles.")}
+      ${sw("awayMode","Cats wander off instead of passing away","If neglected too long, a cat goes missing — play the Homeward Maze to bring them back — rather than being lost for good.")}
       <div class="coltitle">Engine</div>
       <div class="item"><div class="big">⚡</div><div class="info"><div class="nm">${View.mode2D?"Canvas 2D":"WebGL 2"}</div>
         <div class="ds">Renderer in use · particles: ${Particles.ready?"WebAssembly":"JavaScript"} · pool ${Particles.count}/${P_MAX}</div></div></div>
@@ -3969,6 +4098,7 @@ function bindSheet(){
     state.settings[k]=!state.settings[k];
     if(k==="music") Audio.setMusic(state.settings[k]);
     if(k==="sfx") Audio.setSfx(state.settings[k]);
+    if(k==="realMusic") Audio.setRealMusic(state.settings[k]);
     if(k==="particles"&&!state.settings[k]) Particles.clear();
     saveGame(); refreshSheet();
   });
@@ -4073,16 +4203,28 @@ function favGameOf(c){
   if(!g){ g=pick(MINIGAMES); c.favGame=g.id; }
   return g;
 }
+/* Games that exist outside the normal Games-tab rotation — not tied to a
+   cat's mood or cooldown, triggered instead by something happening in the
+   world (right now: a cat going missing). Kept separate from MINIGAMES so
+   they never show up as a purchasable/idle activity in the Games sheet. */
+const EXTRA_GAMES={
+  homeward:{id:"homeward", n:"Homeward Maze", emoji:"🏠", time:50,
+    d:"Drag to steer — guide them home through the maze before the trail goes cold.", scale:[1,1,1]}
+};
+function startHomewardMaze(cat){
+  if(!cat||!cat.away) return;
+  MG.start("homeward",cat);
+}
 const MG={
   cur:null, g:null, ctx:null, raf:0, last:0, running:false, score:0, goal:0, timeLeft:0, cat:null,
-  start(id){
-    const def=MINIGAMES.find(x=>x.id===id); if(!def) return;
-    const c=selectedCat(); if(!c) return;
+  start(id,forcedCat){
+    const def=MINIGAMES.find(x=>x.id===id)||EXTRA_GAMES[id]; if(!def) return;
+    const c=forcedCat||selectedCat(); if(!c) return;
     if(c.sleeping){ toast(`${c.name} is fast asleep 😴`); return; }
     this.cur=def; this.cat=c;
     const diff=stageIndex(c);
     this.goal=def.scale[diff];
-    this.score=0; this.timeLeft=24;
+    this.score=0; this.timeLeft=def.time||24;
     const cv=document.getElementById("mgCanvas");
     const dpr=Math.min(2,window.devicePixelRatio||1);
     const w=cv.clientWidth||320, h=cv.clientHeight||240;
@@ -4141,6 +4283,7 @@ const MG={
   finish(win){
     this.running=false; cancelAnimationFrame(this.raf);
     const c=this.cat, def=this.cur;
+    if(def.id==="homeward"){ this.finishHomeward(win); return; }
     c.lastGameAt=c.lastGameAt||{};
     c.lastGameAt[def.id]=now();
     const fav=c.favGame===def.id;
@@ -4173,6 +4316,32 @@ const MG={
     document.getElementById("mgAction").disabled=false;
     document.getElementById("mgAction").textContent="Play again";
     touchStreak(); checkAchievements(); renderAll(); saveGame();
+  },
+  /* winning brings the cat straight home with enough tummy/energy to be
+     safe again; losing just means the trail's gone cold for now — no
+     extra penalty, so this never feels like a punishing time-attack. */
+  finishHomeward(win){
+    const c=this.cat, ov=document.getElementById("mgOver");
+    if(win){
+      c.away=false; c.danger=0; c.neglect=0; c.sick=false; c._sig=null;
+      c.tummy=clamp(Math.max(c.tummy,35)); c.energy=clamp(Math.max(c.energy,35));
+      c.mood=clamp(c.mood+8);
+      c.behavior="wander"; c.behaviorUntil=0;
+      c.tx=c.x=clamp(rnd(0.35,0.65),0.05,0.95);
+      c.ty=c.y=rnd(CAT_BAND[0],CAT_BAND[1]);
+      Audio.sfx("fanfare"); confettiRain(90);
+      pushMsg(`🏠 ${c.name} is home safe! Keep an eye on their tummy so they don't wander off again.`,false);
+      document.getElementById("mgOverT").textContent="Welcome home! 🎉";
+      document.getElementById("mgOverS").innerHTML=`${esc(c.name)} is back safe and sound.`;
+    } else {
+      Audio.sfx("fail");
+      document.getElementById("mgOverT").textContent="So close 🐾";
+      document.getElementById("mgOverS").innerHTML=`${esc(c.name)} is still out there — have another go whenever you're ready.`;
+    }
+    ov.classList.add("show");
+    document.getElementById("mgAction").disabled=false;
+    document.getElementById("mgAction").textContent=win?"Yay! 🎉":"Try again";
+    checkAchievements(); renderAll(); saveGame();
   },
   close(){
     this.running=false; cancelAnimationFrame(this.raf);
@@ -4325,6 +4494,85 @@ const MG_BUILD={
         else M.miss();
       }
     };
+  },
+  /* a real grid maze — drag to steer a step at a time toward the house.
+     Generated fresh each attempt with a randomised depth-first carve, so
+     it's never the same run twice. */
+  homeward(M,diff){
+    const n=[6,8,10][diff]||8;
+    const top=40, pad=10;
+    const size=Math.min(M.W-pad*2,(M.H-top-pad))/n;
+    const ox=(M.W-size*n)/2, oy=top+(M.H-top-size*n)/2;
+    // walls[r][c] = {N,E,S,W} true = wall present
+    const walls=Array.from({length:n},()=>Array.from({length:n},()=>({N:true,E:true,S:true,W:true})));
+    const visited=Array.from({length:n},()=>Array(n).fill(false));
+    (function carve(r,c){
+      visited[r][c]=true;
+      const dirs=[["N",-1,0,"S"],["E",0,1,"W"],["S",1,0,"N"],["W",0,-1,"E"]];
+      for(let i=dirs.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [dirs[i],dirs[j]]=[dirs[j],dirs[i]]; }
+      for(const [d,dr,dc,opp] of dirs){
+        const nr=r+dr, nc=c+dc;
+        if(nr<0||nr>=n||nc<0||nc>=n||visited[nr][nc]) continue;
+        walls[r][c][d]=false; walls[nr][nc][opp]=false;
+        carve(nr,nc);
+      }
+    })(0,0);
+    let cr=0, cc=0;                       // current cell
+    let px=ox+size/2, py=oy+size/2;       // pixel position (mid-cell when settled)
+    let moving=null;                      // {tr,tc,t}
+    let desired=null, refX=0, refY=0, haveRef=false;
+    const cellPx=(r,c)=>[ox+c*size+size/2, oy+r*size+size/2];
+    const SPEED=1/0.16;                   // cells per second while animating
+    function tryStep(dir){
+      if(moving) return;
+      const w=walls[cr][cc];
+      if(w[dir]) { M.miss(); return; }
+      const d={N:[-1,0],E:[0,1],S:[1,0],W:[0,-1]}[dir];
+      const tr=cr+d[0], tc=cc+d[1];
+      if(tr<0||tr>=n||tc<0||tc>=n) return;
+      moving={tr,tc,t:0,fr:cr,fc:cc};
+    }
+    return {
+      update(dt){
+        if(moving){
+          moving.t=Math.min(1,moving.t+dt*SPEED);
+          const [fx,fy]=cellPx(moving.fr,moving.fc), [tx,ty]=cellPx(moving.tr,moving.tc);
+          px=lerp(fx,tx,moving.t); py=lerp(fy,ty,moving.t);
+          if(moving.t>=1){
+            cr=moving.tr; cc=moving.tc; moving=null;
+            if(cr===n-1&&cc===n-1){ M.score=M.goal; Audio.sfx("pop"); }
+            else if(desired) tryStep(desired);
+          }
+        } else if(desired) tryStep(desired);
+      },
+      draw(g){
+        g.strokeStyle="rgba(90,70,54,.55)"; g.lineWidth=3; g.lineCap="round";
+        g.beginPath();
+        for(let r=0;r<n;r++) for(let c=0;c<n;c++){
+          const x=ox+c*size, y=oy+r*size, w=walls[r][c];
+          if(w.N){ g.moveTo(x,y); g.lineTo(x+size,y); }
+          if(w.W){ g.moveTo(x,y); g.lineTo(x,y+size); }
+          if(r===n-1&&w.S){ g.moveTo(x,y+size); g.lineTo(x+size,y+size); }
+          if(c===n-1&&w.E){ g.moveTo(x+size,y); g.lineTo(x+size,y+size); }
+        }
+        g.stroke();
+        const [hx,hy]=cellPx(n-1,n-1);
+        g.font=`${Math.min(size*0.7,28)}px serif`; g.textAlign="center"; g.textBaseline="middle";
+        g.fillText("🏠",hx,hy);
+        g.font=`${Math.min(size*0.62,24)}px serif`;
+        g.fillText("🐾",px,py);
+        g.textBaseline="alphabetic";
+      },
+      down(x,y){ haveRef=true; refX=x; refY=y; },
+      move(x,y){
+        if(!haveRef) return;
+        const dx=x-refX, dy=y-refY;
+        if(Math.hypot(dx,dy)<size*0.4) return;
+        desired=Math.abs(dx)>Math.abs(dy)?(dx>0?"E":"W"):(dy>0?"S":"N");
+        refX=x; refY=y;
+        tryStep(desired);
+      }
+    };
   }
 };
 function bindMinigame(){
@@ -4342,7 +4590,7 @@ function bindMinigame(){
   });
   addEventListener("pointerup",()=>{ down=false; });
   document.getElementById("mgAction").addEventListener("click",()=>{
-    if(document.getElementById("mgOver").classList.contains("show")) MG.start(MG.cur.id);
+    if(document.getElementById("mgOver").classList.contains("show")) MG.start(MG.cur.id,MG.cat);
     else MG.go();
   });
   document.getElementById("mgQuit").addEventListener("click",()=>MG.close());
@@ -4400,6 +4648,10 @@ function bindUI(){
     b.addEventListener("click",()=>openSheet(b.dataset.sheet)));
   document.getElementById("sleepBtn").addEventListener("click",toggleSleep);
   document.getElementById("menuBtn").addEventListener("click",()=>openSheet("menu"));
+  document.getElementById("decoBtn").addEventListener("click",()=>{
+    closeSheet(); Deco.toggle();
+    toast(Deco.on?"Decorate mode — drag furniture about 🎨":"Decorate mode off");
+  });
   document.getElementById("scrim").addEventListener("click",closeSheet);
   document.getElementById("stats").addEventListener("click",e=>{
     if(e.target.closest(".bar")) return;
@@ -4439,7 +4691,8 @@ function migrate(s){
   s.version=5;
   s.owned=s.owned||{}; s.wish=s.wish||{}; s.ach=s.ach||{}; s.seen=s.seen||{};
   s.stats=Object.assign({fed:0,cleaned:0,pets:0,games:0,placed:0,bred:0,rubs:0},s.stats||{});
-  s.settings=Object.assign({music:true,sfx:true,musicVol:0.34,sfxVol:0.7,dayNight:true,particles:true},s.settings||{});
+  s.settings=Object.assign({music:true,sfx:true,musicVol:0.34,sfxVol:0.7,dayNight:true,particles:true,awayMode:true,realMusic:true},s.settings||{});
+  for(const c of s.cats) c.away=!!c.away;
   s.streak=s.streak||0; s.coinCapBonus=s.coinCapBonus||0; s.toys=s.toys||[];
   for(const r of s.rooms){
     r.placed=r.placed||[]; r.theme=r.theme||"cottage";
@@ -4489,6 +4742,7 @@ async function init(){
 
   Audio.musicOn=state.settings.music; Audio.sfxOn=state.settings.sfx;
   Audio.musicVol=state.settings.musicVol; Audio.sfxVol=state.settings.sfxVol;
+  Audio.realOn=state.settings.realMusic;
 
   bindUI(); bindStage(); bindMinigame();
   applyTheme();
@@ -4505,7 +4759,19 @@ async function init(){
 
   setTimeout(()=>pushMsg("G'day! Tap a cat to give them a pat 🐾",false),700);
 }
-init();
+/* If startup throws, don't leave the player staring at an empty stage —
+   show what broke so it can actually be diagnosed and fixed. */
+function showFatalError(err){
+  try{
+    const box=document.getElementById("fatalError"), msg=document.getElementById("fatalErrorMsg");
+    if(!box||!msg) return;
+    msg.textContent=(err&&(err.stack||err.message))||String(err);
+    box.style.display="flex";
+  }catch(_){}
+}
+addEventListener("error",e=>{ if(!state) showFatalError(e.error||e.message); });
+addEventListener("unhandledrejection",e=>{ if(!state) showFatalError(e.reason); });
+init().catch(showFatalError);
 
 
 </script>
