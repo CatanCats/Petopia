@@ -1849,7 +1849,7 @@ function priceNice(v){ return v<100?Math.round(v/5)*5:v<1000?Math.round(v/10)*10
 
 /* A small free starter kit so a new café isn't a bare box.
    Everything else has to be earned. */
-const FREE_ITEMS=["w_cream","f_oak","i_window_sky","i_catBed_dusty","i_litterBox_drift"];
+const FREE_ITEMS=["w_cream","f_oak","i_window_sky","i_catBed_dusty","i_litterBox_sky"];
 for(const id of FREE_ITEMS){ const it=ITEM_BY_ID[id]; if(it){ it.price=0; it.free=true; } }
 
 /* ═══════════════════════ 7. CATS ═══════════════════════ */
@@ -2134,7 +2134,7 @@ function freshState(){
   for(const id of FREE_ITEMS) s.owned[id]=1;
   const win={u:uid("p"), item:"i_window_sky",      x:0.62, y:0.30, flip:1};
   const bed={u:uid("p"), item:"i_catBed_dusty",  x:0.30, y:0.80, flip:1};
-  const lit={u:uid("p"), item:"i_litterBox_drift", x:0.82, y:0.78, flip:1};
+  const lit={u:uid("p"), item:"i_litterBox_sky",   x:0.82, y:0.78, flip:1};
   room.placed=[win,bed,lit];
   room.litterClean[lit.u]=100;
   generateShelter();
@@ -3114,7 +3114,7 @@ const Deco={
 /* ═══════════════════════ 18. STAGE INPUT ═══════════════════════ */
 function bindStage(){
   const st=View.stage;
-  let mode=null, sx0=0, sy0=0, cam0=0, moved=false, lastX=0, vel=0, lastT=0;
+  let mode=null, sx0=0, sy0=0, cam0=0, moved=false, lastX=0, vel=0, lastT=0, catDown=null;
   const local=e=>{ const r=st.getBoundingClientRect(); return [e.clientX-r.left, e.clientY-r.top]; };
 
   st.addEventListener("pointerdown",e=>{
@@ -3125,7 +3125,18 @@ function bindStage(){
     /* Furniture picks itself up via its own dedicated hit-target element
        (see bindFurniDrag) which stops the event from ever reaching here —
        same split of responsibility the very first version of this game
-       used. A pointerdown that does reach the stage is always a pan. */
+       used. A pointerdown that does reach the stage pans the room…
+       …unless it landed on a cat. Remember which cat (and which petting
+       hotspot) was pressed: the stage takes pointer capture below so it can
+       keep panning if the finger leaves it, and capture makes the browser
+       fire the follow-up "click" at the stage instead of at the sprite, so
+       a click listener on the sprite would never hear it. Resolving the tap
+       here, at pointerup, keeps both: drag to pan, tap to pet. */
+    const spriteEl=e.target.closest(".catSprite");
+    if(spriteEl){
+      const zoneEl=e.target.closest(".zone");
+      catDown={id:spriteEl.dataset.cat, zone:zoneEl?zoneEl.dataset.zone:null};
+    }else catDown=null;
     mode="pan"; st.classList.add("dragging");
     try{ st.setPointerCapture(e.pointerId); }catch(_){}
   });
@@ -3145,27 +3156,26 @@ function bindStage(){
     const [x,y]=local(e);
     st.classList.remove("dragging");
     if(mode==="pan"){
-      if(!moved) tapWorld(x,y);
+      if(!moved){ if(catDown) tapCat(catDown.id,catDown.zone,e.clientX,e.clientY); else tapWorld(x,y); }
       else View.camTarget=clamp(View.camX-vel*220,0,View.maxCam());   // gentle flick
     }
+    catDown=null;
     mode=null;
   };
   st.addEventListener("pointerup",end);
-  st.addEventListener("pointercancel",()=>{ mode=null; st.classList.remove("dragging"); });
+  st.addEventListener("pointercancel",()=>{ mode=null; catDown=null; st.classList.remove("dragging"); });
   st.addEventListener("wheel",e=>{
     View.camTarget=clamp(View.camTarget+(Math.abs(e.deltaX)>Math.abs(e.deltaY)?e.deltaX:e.deltaY),0,View.maxCam());
     e.preventDefault();
   },{passive:false});
-
-  document.getElementById("catsLayer").addEventListener("click",e=>{
-    const sprite=e.target.closest(".catSprite"); if(!sprite) return;
-    const id=sprite.dataset.cat, c=state.cats.find(x=>x.id===id); if(!c) return;
-    const zoneEl=e.target.closest(".zone");
-    Audio.resume();
-    if(state.selected!==id){ selectCat(id); if(zoneEl) petCat(c,zoneEl.dataset.zone,e.clientX,e.clientY); }
-    else if(zoneEl) petCat(c,zoneEl.dataset.zone,e.clientX,e.clientY);
-    else selectCat(id);
-  });
+}
+/* a tap that landed on a cat: select it, and pet it if a hotspot was hit */
+function tapCat(id,zone,cx,cy){
+  const c=state.cats.find(x=>x.id===id); if(!c) return;
+  Audio.resume();
+  if(state.selected!==id){ selectCat(id); if(zone) petCat(c,zone,cx,cy); }
+  else if(zone) petCat(c,zone,cx,cy);
+  else selectCat(id);
 }
 /* a tap on the room itself: clean a mess, use a piece of furniture */
 function tapWorld(sx,sy){
@@ -4848,9 +4858,9 @@ function migrate(s){
     r.poops=(r.poops||[]).map(p=>({id:p.id||uid("p"),x:p.x!==undefined?p.x:rnd(0.2,0.8),y:p.y>0.6?p.y:rnd(0.72,0.92)}));
     // old saves kept litter boxes and feeders as separate arrays — turn them into real furniture
     (r.litters||[]).forEach(b=>{
-      const p={u:uid("p"),item:"i_litterBox_drift",x:clamp(b.x||rnd(0.1,0.9),0.05,0.95),y:rnd(0.74,0.9),flip:1};
+      const p={u:uid("p"),item:"i_litterBox_sky",x:clamp(b.x||rnd(0.1,0.9),0.05,0.95),y:rnd(0.74,0.9),flip:1};
       r.placed.push(p); r.litterClean[p.u]=b.clean===undefined?100:b.clean;
-      s.owned["i_litterBox_drift"]=1;
+      s.owned["i_litterBox_sky"]=1;
     });
     if(r.feeder&&r.feeder.level){
       const p={u:uid("p"),item:"i_autoFeeder_oat",x:rnd(0.15,0.85),y:rnd(0.74,0.9),flip:1};
@@ -4858,6 +4868,17 @@ function migrate(s){
       s.owned["i_autoFeeder_oat"]=1;
     }
     delete r.litters;
+  }
+  /* The starter litter tray used to be handed out in "Driftwood", which
+     renders as flat grey next to everything else in the starter kit. Swap
+     any already-placed one over to "Sky Wash" — the blue-grey the original
+     version's tray actually used — instead of leaving old saves stuck
+     looking at the grey one forever. Flagged so a player who deliberately
+     buys the Driftwood variant back later keeps it. */
+  if(!s._trayRecolour2){
+    for(const r of s.rooms) for(const p of r.placed) if(p.item==="i_litterBox_drift") p.item="i_litterBox_sky";
+    if(s.owned&&s.owned["i_litterBox_drift"]) s.owned["i_litterBox_sky"]=1;
+    s._trayRecolour2=true;
   }
   for(const c of s.cats){
     if(c.bond===undefined) c.bond=8;
