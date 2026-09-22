@@ -93,6 +93,9 @@ input,button,textarea{font-family:inherit;color:inherit;}
 .stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;}
 #glRoom{z-index:1;}
 #glFx{z-index:7;pointer-events:none;}
+.furniLayer{position:absolute;inset:0;z-index:5;pointer-events:none;}
+.furniHit{position:absolute;pointer-events:auto;touch-action:none;cursor:grab;}
+.furniHit.dragging{cursor:grabbing;}
 .catsLayer{position:absolute;inset:0;z-index:4;pointer-events:none;}
 .uiLayer{position:absolute;inset:0;z-index:8;pointer-events:none;}
 .uiLayer > *{pointer-events:auto;}
@@ -471,6 +474,7 @@ input,button,textarea{font-family:inherit;color:inherit;}
 
   <div class="stage" id="stage">
     <canvas id="glRoom"></canvas>
+    <div class="furniLayer" id="furniLayer"></div>
     <div class="catsLayer" id="catsLayer"></div>
     <canvas id="glFx"></canvas>
     <div class="uiLayer" id="uiLayer">
@@ -2439,6 +2443,83 @@ function positionSprites(){
     el.classList.toggle("breeding",isBreeding(c)&&!c.sleeping);
   }
 }
+/* Furniture used to only be draggable via a hand-rolled hit-test against
+   the whole stage's pointerdown — one shared piece of math approximating
+   where every item's box was, prone to being off by a hair at the exact
+   boundary. A real DOM element per placed item gets native, pixel-exact
+   browser hit-testing for free — same approach the very first version of
+   this game used for its furniture, before the WebGL room rewrite. */
+let furniHitEls={};
+function syncFurniHits(){
+  const layer=document.getElementById("furniLayer"); if(!layer||!state) return;
+  const r=activeRoom();
+  const ids=new Set(r.placed.filter(p=>{ const it=ITEM_BY_ID[p.item]; return it&&it.kind==="furni"; }).map(p=>p.u));
+  for(const u in furniHitEls){ if(!ids.has(u)){ furniHitEls[u].remove(); delete furniHitEls[u]; } }
+  for(const p of r.placed){
+    const it=ITEM_BY_ID[p.item]; if(!it||it.kind!=="furni") continue;
+    if(!furniHitEls[p.u]){
+      const el=document.createElement("div");
+      el.className="furniHit"; el.dataset.u=p.u;
+      bindFurniDrag(el,p.u);
+      layer.appendChild(el);
+      furniHitEls[p.u]=el;
+    }
+  }
+}
+function positionFurniHits(){
+  const V=View; if(!state) return;
+  const r=activeRoom();
+  for(const p of r.placed){
+    const el=furniHitEls[p.u]; if(!el) continue;
+    const it=ITEM_BY_ID[p.item]; if(!it||it.kind!=="furni") continue;
+    const sx=p.x*V.worldW-V.camX, sy=p.y*V.h;
+    const t=Math.max(0,(p.y-HORIZON)/(1-HORIZON));
+    const sc=it.zone==="wall"?1:(0.74+t*0.46);
+    const w=it.w*sc, h=w;
+    if(sx<-w||sx>V.w+w){ el.style.display="none"; continue; }
+    el.style.display="block";
+    el.style.left=(sx-w/2)+"px"; el.style.top=(sy-h)+"px";
+    el.style.width=w+"px"; el.style.height=h+"px";
+    el.style.zIndex=String(Math.round(p.y*200));
+  }
+}
+/* Mirrors the old version's makeDraggable() almost exactly: each element
+   owns its own pointer sequence and stops it from bubbling to the stage,
+   so a drag here is never mistaken for a room-pan gesture. */
+function bindFurniDrag(el,u){
+  let sx=0,sy=0,moved=false,dragging=false;
+  const local=e=>{ const r=View.stage.getBoundingClientRect(); return [e.clientX-r.left, e.clientY-r.top]; };
+  el.addEventListener("pointerdown",e=>{
+    Audio.resume();
+    if(!findPlaced(u)) return;
+    dragging=true; moved=false; [sx,sy]=local(e);
+    Deco.dragging=findPlaced(u);
+    if(Deco.on) document.getElementById("dbStore").style.display="block";
+    el.classList.add("dragging");
+    try{ el.setPointerCapture(e.pointerId); }catch(_){}
+    e.stopPropagation();
+  });
+  el.addEventListener("pointermove",e=>{
+    if(!dragging) return;
+    const [x,y]=local(e);
+    if(Math.abs(x-sx)>5||Math.abs(y-sy)>5) moved=true;
+    if(moved){ const p=findPlaced(u); if(p) Deco.moveTo(p,x,y); }
+    e.stopPropagation();
+  });
+  const end=e=>{
+    if(!dragging) return;
+    dragging=false; el.classList.remove("dragging");
+    const p=findPlaced(u);
+    if(p){
+      if(!moved){ if(Deco.on) showItemMenu(p); else useFurniture(p); }
+      else { invalidateFx(activeRoom()); saveGame(); }
+      if(!Deco.on){ Deco.dragging=null; document.getElementById("dbStore").style.display="none"; }
+    }
+    e.stopPropagation();
+  };
+  el.addEventListener("pointerup",end);
+  el.addEventListener("pointercancel",()=>{ dragging=false; el.classList.remove("dragging"); });
+}
 function spriteAnim(c,cls,ms){
   const el=spriteEls[c.id]; if(!el) return;
   const h=el.querySelector(".catG"); if(!h) return;
@@ -2537,7 +2618,7 @@ function renderRoomBar(){
   add.onclick=()=>openSheet("shop","rooms");
   bar.appendChild(add);
 }
-function renderAll(){ renderRoomBar(); syncSprites(); renderNameStack(); renderHUD(); }
+function renderAll(){ renderRoomBar(); syncSprites(); syncFurniHits(); renderNameStack(); renderHUD(); }
 
 /* ── floating text & speech ── */
 function fx(xClient,yClient,txt,colour){
@@ -3024,14 +3105,10 @@ function bindStage(){
     if(e.target.closest(".decoBar")||e.target.closest(".nameChip")) return;
     const [x,y]=local(e);
     moved=false; sx0=x; sy0=y; cam0=View.camX; lastX=x; lastT=performance.now(); vel=0;
-    /* Furniture is always grabbable, not just in decorate mode — matches
-       the older builds where you could just pick things up and move them.
-       Decorate mode still exists for the flip/store menu on a plain tap. */
-    const hit=Deco.hitTest(x,y);
-    if(hit){ mode="item"; Deco.dragging=hit;
-      if(Deco.on) document.getElementById("dbStore").style.display="block";
-      try{ st.setPointerCapture(e.pointerId); }catch(_){}
-      return; }
+    /* Furniture picks itself up via its own dedicated hit-target element
+       (see bindFurniDrag) which stops the event from ever reaching here —
+       same split of responsibility the very first version of this game
+       used. A pointerdown that does reach the stage is always a pan. */
     mode="pan"; st.classList.add("dragging");
     try{ st.setPointerCapture(e.pointerId); }catch(_){}
   });
@@ -3039,7 +3116,6 @@ function bindStage(){
     if(!mode) return;
     const [x,y]=local(e);
     if(Math.abs(x-sx0)>5||Math.abs(y-sy0)>5) moved=true;
-    if(mode==="item"&&Deco.dragging){ Deco.moveTo(Deco.dragging,x,y); return; }
     if(mode==="pan"){
       const t=performance.now();
       if(t>lastT){ vel=(x-lastX)/(t-lastT); lastX=x; lastT=t; }
@@ -3051,11 +3127,7 @@ function bindStage(){
     if(!mode) return;
     const [x,y]=local(e);
     st.classList.remove("dragging");
-    if(mode==="item"){
-      if(!moved && Deco.dragging){ if(Deco.on) showItemMenu(Deco.dragging); else useFurniture(Deco.dragging); }
-      else { invalidateFx(activeRoom()); saveGame(); }
-      if(!Deco.on){ Deco.dragging=null; document.getElementById("dbStore").style.display="none"; }
-    } else if(mode==="pan"){
+    if(mode==="pan"){
       if(!moved) tapWorld(x,y);
       else View.camTarget=clamp(View.camX-vel*220,0,View.maxCam());   // gentle flick
     }
@@ -3384,6 +3456,7 @@ function frame(ts){
       }
     }
     positionSprites();
+    positionFurniHits();
     if(roomNeedsRedraw(ts/1000)) drawRoom(ts/1000);
     ambientSpawn(dt);
     drawParticles(dt);
@@ -3537,6 +3610,7 @@ function checkSynergies(room){
 function switchRoom(id){
   state.activeRoom=id;
   for(const k in spriteEls){ spriteEls[k].remove(); delete spriteEls[k]; }
+  for(const k in furniHitEls){ furniHitEls[k].remove(); delete furniHitEls[k]; }
   const here=catsIn(id);
   if(here.length&&!here.find(c=>c.id===state.selected)) state.selected=here[0].id;
   View.camX=View.camTarget=0;
@@ -4767,6 +4841,15 @@ function migrate(s){
       s.owned["i_autoFeeder_oat"]=1;
     }
     delete r.litters;
+  }
+  /* one-time: the starter litter tray used to default to a grey palette;
+     recolour anyone's already-placed one instead of leaving existing saves
+     stuck looking at the old colour forever. Flagged so a player who
+     deliberately re-buys the grey "Driftwood" variant later keeps it. */
+  if(!s._litterRecoloured){
+    for(const r of s.rooms) for(const p of r.placed) if(p.item==="i_litterBox_drift") p.item="i_litterBox_gum";
+    if(s.owned&&s.owned["i_litterBox_drift"]) s.owned["i_litterBox_gum"]=1;
+    s._litterRecoloured=true;
   }
   for(const c of s.cats){
     if(c.bond===undefined) c.bond=8;
