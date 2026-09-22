@@ -2079,7 +2079,9 @@ function buildCatSVG(c){
 }
 
 /* ═══════════════════════ 9. STATE ═══════════════════════ */
-const SAVE_KEY="kittencafe_save_v5";
+/* bumped so everyone's next load starts completely fresh — a clean slate
+   to actually see today's fixes instead of a save that predates them */
+const SAVE_KEY="kittencafe_save_v6";
 let state=null, saveTimer=null, lastFrame=0;
 let spriteEls={}, cooldowns={}, selF=null, selM=null;
 const msgQueue=[]; let msgBusy=false;
@@ -2175,11 +2177,26 @@ function feederSpots(r){ return r.placed.filter(p=>{const it=ITEM_BY_ID[p.item];
 function litterSpots(r){ return r.placed.filter(p=>{const it=ITEM_BY_ID[p.item]; return it&&it.fn&&it.fn.k==="litter";}); }
 
 /* ── storage ── */
+/* window.storage only exists inside certain hosted preview environments —
+   opened normally (a downloaded file, GitHub Pages, any plain browser),
+   it's undefined, and this used to silently fall back to an in-memory
+   object that's wiped on every single reload. That means saves were
+   never actually persisting across sessions at all outside of one of
+   those special hosts. localStorage is the real, standard mechanism that
+   works everywhere the game is actually opened, so it's now the primary
+   store; window.storage (where present) and the in-memory fallback stay
+   as belt-and-braces for hosts that block localStorage entirely. */
 const Store={
-  async get(k){ try{ if(window.storage){ const r=await window.storage.get(k); return r&&r.value?r.value:null; } }catch(e){}
-    try{ return window.__mem&&window.__mem[k]||null; }catch(e){ return null; } },
-  async set(k,v){ try{ if(window.storage){ await window.storage.set(k,v); return; } }catch(e){}
-    window.__mem=window.__mem||{}; window.__mem[k]=v; }
+  async get(k){
+    try{ const v=localStorage.getItem(k); if(v!==null) return v; }catch(e){}
+    try{ if(window.storage){ const r=await window.storage.get(k); if(r&&r.value) return r.value; } }catch(e){}
+    try{ return window.__mem&&window.__mem[k]||null; }catch(e){ return null; }
+  },
+  async set(k,v){
+    try{ localStorage.setItem(k,v); return; }catch(e){}
+    try{ if(window.storage){ await window.storage.set(k,v); return; } }catch(e){}
+    window.__mem=window.__mem||{}; window.__mem[k]=v;
+  }
 };
 async function loadGame(){ try{ const v=await Store.get(SAVE_KEY); return v?JSON.parse(v):null; }catch(e){ return null; } }
 function saveGame(){
