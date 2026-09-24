@@ -156,8 +156,18 @@ input,button,textarea{font-family:inherit;color:inherit;}
 .catSprite.sleeping .legFL,.catSprite.sleeping .legBL,.catSprite.sleeping .legFR,.catSprite.sleeping .legBR{transform:scaleY(.4);transform-origin:50% 100%;}
 .catSprite.sleeping .catG .tail{animation:tailcurl 4s ease-in-out infinite;}
 @keyframes tailcurl{0%,100%{transform:rotate(40deg)}50%{transform:rotate(48deg)}}
-.catSprite.breeding .catG{animation:breedsway 1.6s ease-in-out infinite;transform-origin:50% 90%;}
-@keyframes breedsway{0%,100%{transform:rotate(-3deg) translateY(0)}50%{transform:rotate(3deg) translateY(-2px)}}
+/* a courting pair sits face to face: lean in, head-bump, settle, repeat */
+.catSprite.courting .catG{animation:nuzzle 3.4s ease-in-out infinite;transform-origin:50% 90%;}
+.catSprite.courting .catG .tail{animation:tailsway 1.8s ease-in-out infinite;}
+@keyframes nuzzle{0%,55%,100%{transform:translateX(0) rotate(0)}
+  18%{transform:translateX(var(--lean,5px)) rotate(var(--tilt,4deg))}
+  28%{transform:translateX(calc(var(--lean,5px)*.4)) rotate(0)}
+  40%{transform:translateX(var(--lean,5px)) rotate(var(--tilt,4deg))}}
+/* …then curled up together, breathing slow */
+.catSprite.snuggle .svgholder{animation:none;}
+.catSprite.snuggle .catG{animation:catnap 4.4s ease-in-out infinite;transform-origin:50% 90%;}
+.catSprite.snuggle .legFL,.catSprite.snuggle .legBL,.catSprite.snuggle .legFR,.catSprite.snuggle .legBR{transform:scaleY(.4);transform-origin:50% 100%;}
+.catSprite.snuggle .catG .tail{animation:tailcurl 4.4s ease-in-out infinite;}
 .catSprite .ring{position:absolute;left:50%;bottom:-4px;transform:translateX(-50%);width:70%;height:14px;border-radius:50%;
   border:2.5px solid var(--coral);opacity:0;transition:opacity .2s;}
 .catSprite.selected .ring{opacity:.9;}
@@ -2195,6 +2205,31 @@ const selectedCat=()=>state.cats.find(c=>c.id===state.selected)||catsIn(state.ac
 const wellbeing=c=>(c.tummy+c.mood+c.energy+c.hygiene)/4;
 const healthFactor=c=>0.35+0.65*(wellbeing(c)/100);
 const isBreeding=c=>!!(state&&state.breeding&&(state.breeding.f===c.id||state.breeding.m===c.id));
+/* ── A BREEDING PAIR ─────────────────────────────────────────────────
+   The two meet at the room's bed (or the middle of the room), sit face to
+   face and stay put for the whole hour instead of wandering off:
+   getting acquainted (nuzzles, head bumps) → snuggled up (curled together)
+   → close again as the kitten arrives between them.                   */
+function courtSpot(c){
+  const B=state.breeding, left=c.id===B.f, room=getRoom(B.room);
+  const dx=34/Math.max(1,View.w*(room?roomWidth(room):1));
+  return {tx:clamp(B.x+(left?-dx:dx),0.04,0.96), ty:B.y, face:left?1:-1};
+}
+function atCourt(c){ if(!isBreeding(c)||c.roomId!==state.breeding.room) return false;
+  const s=courtSpot(c); return Math.hypot((s.tx-c.x)*2.2,s.ty-c.y)<0.03; }
+function breedProgress(){ const B=state.breeding; return B?clamp((now()-(B.start||B.until-BREED_TIME))/(B.until-(B.start||B.until-BREED_TIME)),0,1):0; }
+function breedStage(c){
+  if(!atCourt(c)) return null;
+  const p=breedProgress();
+  return p<0.3?"acquainted":p<0.88?"snuggled":"close";
+}
+const BREED_WORDS={acquainted:"getting acquainted",snuggled:"snuggled up",close:"nearly there"};
+function breedStatus(){
+  const B=state.breeding; if(!B) return "";
+  const f=catById(B.f), m=catById(B.m); if(!f||!m) return "";
+  const st=breedStage(f), mins=Math.max(1,Math.ceil((B.until-now())/60000));
+  return `${f.name} and ${m.name} are ${st?BREED_WORDS[st]:"on their way to each other"} 💞 — kitten in about ${mins} min`;
+}
 const hasRoomSpace=()=>state.rooms.some(r=>roomHasResidentSpace(r));
 const canBreed=c=>stageIndex(c)>=1&&!c.sick&&!c.away&&!isBreeding(c)&&c.tummy>80&&c.energy>80&&c.bond>=25;
 const sexSym=s=>s==="female"?'<span style="color:#E86D9A">♀</span>':'<span style="color:#5B8DD6">♂</span>';
@@ -2588,7 +2623,10 @@ function positionSprites(){
     const moving=!c.sleeping&&c.hop>0.1&&!(c.freezeUntil&&t<c.freezeUntil);
     el.classList.toggle("walking",moving);
     el.classList.toggle("sleeping",!!c.sleeping);
-    el.classList.toggle("breeding",isBreeding(c)&&!c.sleeping);
+    const bs=c.sleeping?null:breedStage(c);
+    el.classList.toggle("courting",bs==="acquainted"||bs==="close");
+    el.classList.toggle("snuggle",bs==="snuggled");
+    if(bs){ el.style.setProperty("--lean",(c.face>0?5:-5)+"px"); el.style.setProperty("--tilt",(c.face>0?4:-4)+"deg"); }
   }
 }
 /* Furniture used to only be draggable via a hand-rolled hit-test against
@@ -2828,7 +2866,9 @@ function renderRoomBar(){
     const el=document.createElement("div");
     el.className="room-chip"+(r.id===state.activeRoom?" active":"");
     const danger=catsIn(r.id).some(c=>c.danger>=2);
-    el.innerHTML=`${danger?"🆘 ":""}${esc(r.name)} <span class="cnt">${catsIn(r.id).length}/${roomCap(r)}</span>`;
+    // capacity counts who lives here; cats just visiting show as "+N"
+    const live=residentsOf(r.id).length, visiting=catsIn(r.id).filter(c=>(c.homeRoom||c.roomId)!==r.id).length;
+    el.innerHTML=`${danger?"🆘 ":""}${esc(r.name)} <span class="cnt">${live}/${roomCap(r)}${visiting?` +${visiting}`:""}</span>`;
     el.onclick=()=>switchRoom(r.id);
     bar.appendChild(el);
   }
@@ -3276,7 +3316,7 @@ function doSpew(c,msg){
 function playToy(toy){
   const c=selectedCat();
   if(c.sleeping){ toast(`${c.name} is asleep 😴`); return; }
-  if(isBreeding(c)){ toast(`${c.name} is a bit busy 💞`); return; }
+  if(isBreeding(c)){ toast(breedStatus()); return; }
   if(!canPlayNow(c)){ toast(`${c.name} isn't in the mood just yet`); return; }
   if(c.energy<6&&toy.energy<0){ toast(`${c.name} is too sleepy to play 😴`); return; }
   const t=now(); c.lastPlayAt=t;
@@ -3531,6 +3571,7 @@ function bindStage(){
 function tapCat(id,zone,cx,cy){
   const c=state.cats.find(x=>x.id===id); if(!c) return;
   Audio.resume();
+  if(isBreeding(c)){ if(state.selected!==id) selectCat(id); toast(breedStatus()); return; }
   if(state.selected!==id){ selectCat(id); if(zone) petCat(c,zone,cx,cy); }
   else if(zone) petCat(c,zone,cx,cy);
   else selectCat(id);
@@ -3644,7 +3685,7 @@ function wanderSpot(){ return {tx:rnd(0.05,0.95), ty:rnd(CAT_BAND[0],CAT_BAND[1]
 function assignBehavior(c){
   const r=getRoom(c.roomId), roll=Math.random(), slot=daySlot();
   c._pottyBox=null;
-  if(isBreeding(c)){ c.behavior="wander"; const w=wanderSpot(); c.tx=w.tx; c.ty=w.ty; return; }
+  if(isBreeding(c)){ const s=courtSpot(c); c.tx=s.tx; c.ty=s.ty; c.behavior="court"; return; }
 
   // hungry → head for a stocked auto-feeder
   if(c.tummy<55){
@@ -3785,6 +3826,12 @@ function arrive(c){
     case "goNap":
       c.sleeping=true; c.behavior="nap"; c._sig=null;
       break;
+    case "court": {
+      const s=courtSpot(c);
+      if(c.face!==s.face){ c.face=s.face; c._sig=null; }
+      if(active) syncSprites();
+      break;
+    }
   }
   if(c.behavior!=="nap"){ c.behavior="idle"; c.behaviorUntil=now()+4000+Math.random()*7000; }
 }
@@ -3879,7 +3926,7 @@ function tick(){
         pushMsg(`${c.name} collapsed asleep from exhaustion 😴`,false);
       }
       // tummy-rub window
-      if(!c.sleeping&&!c.sick&&c.mood>55&&now()>c.rubAt&&now()>c.rubUntil){ Rub.open(c); }
+      if(!c.sleeping&&!c.sick&&!isBreeding(c)&&c.mood>55&&now()>c.rubAt&&now()>c.rubUntil){ Rub.open(c); }
       if(now()>c.rubUntil&&Rub.cat===c) Rub.close();
 
       const wb=wellbeing(c);
@@ -3908,8 +3955,12 @@ function tick(){
   }
   if(state.breeding){
     const f=state.cats.find(c=>c.id===state.breeding.f), m=state.cats.find(c=>c.id===state.breeding.m);
-    if(f&&f.roomId===state.activeRoom&&Math.random()<0.6) fxAtCat(f,pick(["💗","💕","💞"]),"#F38BA6");
-    if(m&&m.roomId===state.activeRoom&&Math.random()<0.6) fxAtCat(m,pick(["💗","💕","💞"]),"#F38BA6");
+    const B=state.breeding, stage=f&&m?breedStage(f):null;
+    if(stage&&breedStage(m)&&B.room===state.activeRoom&&spriteEls[f.id]&&spriteEls[m.id]&&Math.random()<(stage==="snuggled"?0.5:0.9)){
+      const a=spriteEls[f.id].getBoundingClientRect(), b=spriteEls[m.id].getBoundingClientRect(), st=View.stage.getBoundingClientRect();
+      burst("pet",(a.left+a.right+b.left+b.right)/4-st.left,Math.min(a.top,b.top)+a.height*0.35-st.top,
+        {n:stage==="snuggled"?2:4,shape:"heart",colours:[[1,.55,.7],[1,.75,.85],[.98,.45,.6]],spMin:10,spMax:45,lift:50,lifeMin:1.2,lifeMax:2.2,szMin:9,szMax:15});
+    }
     if(!f||!m) state.breeding=null;
     else if(now()>=state.breeding.until) finishBreeding();
   }
@@ -3986,6 +4037,7 @@ function buyRoom(kind){
 function moveCat(catId,roomId){
   const c=state.cats.find(x=>x.id===catId); if(!c) return;
   const r=getRoom(roomId); if(!r) return;
+  if(isBreeding(c)){ toast(breedStatus()); return; }
   if(!roomHasResidentSpace(r)&&(c.homeRoom!==roomId)){ toast(`${r.name} is full`); return; }
   c.roomId=roomId; c.homeRoom=roomId;
   const w=wanderSpot(); c.x=w.tx; c.y=w.ty; c.tx=c.x; c.ty=c.y;
@@ -4014,10 +4066,18 @@ function startBreeding(){
   if(!hasRoomSpace()){ toast("No room for a kitten — buy another room 🚪"); return; }
   const f=state.cats.find(c=>c.id===selF), m=state.cats.find(c=>c.id===selM);
   if(!f||!m||!canBreed(f)||!canBreed(m)){ toast("Both need to be well fed, rested and bonded 💞"); return; }
-  state.breeding={f:f.id,m:m.id,until:now()+BREED_TIME};
-  f.loveUntil=now()+BREED_TIME; m.loveUntil=now()+BREED_TIME;
-  f._sig=m._sig=null;
-  Audio.sfx("unlock"); toast("They're getting on famously 💞");
+  const room=getRoom(f.roomId);
+  const bed=room.placed.find(p=>{ const it=ITEM_BY_ID[p.item]; return it&&it.fn&&(it.fn.k==="bed"||it.fn.k==="sleep"); });
+  state.breeding={f:f.id,m:m.id,start:now(),until:now()+BREED_TIME,room:room.id,
+    x:clamp(bed?bed.x:0.5,0.12,0.88), y:clamp(bed?bed.y+0.02:(CAT_BAND[0]+CAT_BAND[1])/2,CAT_BAND[0],CAT_BAND[1])};
+  // he comes over to visit; his home room doesn't change
+  if(m.roomId!==room.id){ m.roomId=room.id; const s=courtSpot(m); m.x=clamp(s.tx+0.25,0.04,0.96); m.y=s.ty; }
+  for(const c of [f,m]){
+    c.loveUntil=now()+BREED_TIME; c.sleeping=false; c._sig=null;
+    const s=courtSpot(c); c.tx=s.tx; c.ty=s.ty; c.behavior="court"; c.freezeUntil=0;
+  }
+  if(state.activeRoom!==room.id) switchRoom(room.id);
+  Audio.sfx("unlock"); toast(`${f.name} and ${m.name} are getting on famously 💞`);
   closeSheet(); renderAll(); saveGame();
 }
 function finishBreeding(){
@@ -4025,14 +4085,23 @@ function finishBreeding(){
   state.breeding=null;
   if(!f||!m) return;
   if(!hasRoomSpace()){ pushMsg("No room for the kitten — it went to the shelter 🏠",false); state.shelter.push(makeShelterCat()); return; }
-  const home=state.rooms.find(r=>roomHasResidentSpace(r));
+  const where=getRoom(f.roomId);
+  const home=where&&roomHasResidentSpace(where)?where:state.rooms.find(r=>roomHasResidentSpace(r));
   const breed=Math.random()<0.5?f.breed:m.breed;
   const trait=Math.random()<0.45?f.trait:(Math.random()<0.7?m.trait:pick(TRAIT_KEYS));
   const kit=newCat(breed,{roomId:home.id,trait});
+  if(home===where){
+    // born right between the two of them, who stay a moment to look on
+    kit.x=kit.tx=(f.x+m.x)/2; kit.y=kit.ty=clamp(Math.max(f.y,m.y)+0.02,CAT_BAND[0],CAT_BAND[1]);
+    kit.behavior="idle"; kit.behaviorUntil=now()+9000; kit.face=f.face;
+    for(const c of [f,m]){ c.behavior="idle"; c.behaviorUntil=now()+14000; c.freezeUntil=now()+4000; }
+    setTimeout(()=>{ if(spriteEls[kit.id]){ const r=spriteEls[kit.id].getBoundingClientRect(), st=View.stage.getBoundingClientRect();
+      burst("pet",r.left+r.width/2-st.left,r.top+r.height*0.4-st.top,{n:18,shape:"star",colours:[[1,.9,.5],[1,.75,.85],[.8,.9,1]],spMax:120,lifeMax:1.4}); } },120);
+  }
   state.cats.push(kit); state.seen[breed]=true; state.stats.bred++;
   f._sig=m._sig=null;
   Audio.sfx("fanfare"); confettiRain(110);
-  pushMsg(`💞 ${f.name} and ${m.name} have a kitten — say hello to ${kit.name}!`,false);
+  pushMsg(`💞 ${f.name} and ${m.name} have a kitten — say hello to ${kit.name}!${home!==where?` (${kit.name} is settling into ${home.name})`:""}`,false);
   checkAchievements(); renderAll(); saveGame();
 }
 
@@ -4481,7 +4550,7 @@ function roomsBody(){
       <div class="ds">Holds ${v.cap} cats · ${v.width.toFixed(1)}× screens wide</div></div>
       <button class="buy" data-room="${k}" ${state.pts<v.cost?"disabled":""}>${coin(v.cost)}</button></div>`).join("");
   const mine=state.rooms.map(r=>`<div class="item"><div class="big">🏠</div><div class="info"><div class="nm">${esc(r.name)}</div>
-    <div class="ds">${catsIn(r.id).length}/${roomCap(r)} cats · ${r.placed.length} pieces placed</div></div>
+    <div class="ds">${residentsOf(r.id).length}/${roomCap(r)} cats live here · ${r.placed.length} pieces placed</div></div>
     <button class="buy use" data-goroom="${r.id}">${r.id===state.activeRoom?"Here":"Visit"}</button></div>`).join("");
   return `<div class="coltitle">Your rooms</div>${mine}<div class="coltitle">Open a new room</div>${rows}`;
 }
