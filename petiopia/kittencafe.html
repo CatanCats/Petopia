@@ -3130,7 +3130,10 @@ function bindStage(){
 
   st.addEventListener("pointerdown",e=>{
     Audio.resume();
-    if(e.target.closest(".decoBar")||e.target.closest(".nameChip")) return;
+    /* Anything in the UI overlay (name chips, the missing-cat banner, the
+       decorate bar…) is a button, not the room: taking pointer capture
+       here would retarget its click to the stage and swallow it. */
+    if(e.target.closest("#uiLayer")) return;
     const [x,y]=local(e);
     moved=false; sx0=x; sy0=y; cam0=View.camX; lastX=x; lastT=performance.now(); vel=0;
     /* Furniture picks itself up via its own dedicated hit-target element
@@ -4379,6 +4382,15 @@ const MG={
     const diff=stageIndex(c);
     this.goal=def.scale[diff];
     this.score=0; this.timeLeft=def.time||24;
+    /* Open the panel before measuring: while it's hidden the canvas is 0×0,
+       which used to fall back to 320×240 and get stretched to fill the
+       panel — squashed text and tall maze cells on phones, blurry on
+       desktop. Measured open, the game draws at the panel's real size.
+       The title and blurb go in first: a long blurb wraps and shrinks it. */
+    document.getElementById("mgTitle").textContent=`${def.emoji} ${def.n}`;
+    document.getElementById("mgSub").textContent=def.d;
+    document.getElementById("mgOver").classList.remove("show");
+    document.getElementById("mg").classList.add("open");
     const cv=document.getElementById("mgCanvas");
     const dpr=Math.min(2,window.devicePixelRatio||1);
     const w=cv.clientWidth||320, h=cv.clientHeight||240;
@@ -4386,10 +4398,6 @@ const MG={
     this.ctx=cv.getContext("2d"); this.ctx.setTransform(dpr,0,0,dpr,0,0);
     this.W=w; this.H=h;
     this.g=MG_BUILD[id](this,diff);
-    document.getElementById("mgTitle").textContent=`${def.emoji} ${def.n}`;
-    document.getElementById("mgSub").textContent=def.d;
-    document.getElementById("mgOver").classList.remove("show");
-    document.getElementById("mg").classList.add("open");
     document.getElementById("mgAction").textContent="Go!";
     document.getElementById("mgAction").disabled=false;
     this.running=false;
@@ -4423,14 +4431,17 @@ const MG={
     // hud
     g.fillStyle=dark?"rgba(255,255,255,.86)":"rgba(63,49,40,.86)";
     g.font="800 14px Nunito, system-ui, sans-serif"; g.textAlign="left";
-    g.fillText(`${this.score} / ${this.goal}`,12,22);
+    const maze=this.cur.id==="homeward";   // a finish line, not a score
+    if(!maze) g.fillText(`${this.score} / ${this.goal}`,12,22);
     g.textAlign="right";
     g.fillText(`${Math.max(0,this.timeLeft).toFixed(1)}s`,W-12,22);
     g.textAlign="left";
-    const p=clamp(this.score/this.goal,0,1);
-    g.fillStyle=dark?"rgba(255,255,255,.16)":"rgba(63,49,40,.12)";
-    g.fillRect(12,28,W-24,6);
-    g.fillStyle="#6FCF97"; g.fillRect(12,28,(W-24)*p,6);
+    if(!maze){
+      const p=clamp(this.score/this.goal,0,1);
+      g.fillStyle=dark?"rgba(255,255,255,.16)":"rgba(63,49,40,.12)";
+      g.fillRect(12,28,W-24,6);
+      g.fillStyle="#6FCF97"; g.fillRect(12,28,(W-24)*p,6);
+    }
   },
   hit(n){ this.score+=(n||1); Audio.sfx("pop"); },
   miss(){ Audio.sfx("fail"); this.timeLeft=Math.max(0.1,this.timeLeft-1.2); },
@@ -4483,6 +4494,8 @@ const MG={
       c.behavior="wander"; c.behaviorUntil=0;
       c.tx=c.x=clamp(rnd(0.35,0.65),0.05,0.95);
       c.ty=c.y=rnd(CAT_BAND[0],CAT_BAND[1]);
+      if(state.activeRoom!==c.roomId) switchRoom(c.roomId);
+      state.selected=c.id;
       Audio.sfx("fanfare"); confettiRain(90);
       pushMsg(`🏠 ${c.name} is home safe! Keep an eye on their tummy so they don't wander off again.`,false);
       document.getElementById("mgOverT").textContent="Welcome home! 🎉";
@@ -4673,31 +4686,42 @@ const MG_BUILD={
     })(0,0);
     let cr=0, cc=0;                       // current cell
     let px=ox+size/2, py=oy+size/2;       // pixel position (mid-cell when settled)
-    let moving=null;                      // {tr,tc,t}
-    let desired=null, refX=0, refY=0, haveRef=false;
+    let moving=null;                      // {tr,tc,t,fr,fc,dir}
+    let queued=null, refX=0, refY=0, haveRef=false;
     const cellPx=(r,c)=>[ox+c*size+size/2, oy+r*size+size/2];
     const SPEED=1/0.16;                   // cells per second while animating
-    function tryStep(dir){
-      if(moving) return;
-      const w=walls[cr][cc];
-      if(w[dir]) { M.miss(); return; }
+    const OPP={N:"S",S:"N",E:"W",W:"E"};
+    const ways=(r,c)=>["N","E","S","W"].filter(d=>!walls[r][c][d]);
+    /* Controls, the way good touch mazes do it: a swipe sends the paw along
+       the corridor — round its bends too — and it stops at each junction to
+       wait for you. A swipe made while it's still running is kept and taken
+       at the first turning where it fits. It used to keep running straight
+       until it hit a wall (sailing past every side-turning) and retried into
+       that wall every frame at 1.2s a time, so one bump drained the timer.
+       Walls now just stop the paw; no time penalty. */
+    function tryStep(dir,swiped){
+      if(moving) return false;
+      if(walls[cr][cc][dir]){ if(swiped) Audio.sfx("fail"); return false; }
       const d={N:[-1,0],E:[0,1],S:[1,0],W:[0,-1]}[dir];
       const tr=cr+d[0], tc=cc+d[1];
-      if(tr<0||tr>=n||tc<0||tc>=n) return;
-      moving={tr,tc,t:0,fr:cr,fc:cc};
+      if(tr<0||tr>=n||tc<0||tc>=n) return false;
+      moving={tr,tc,t:0,fr:cr,fc:cc,dir};
+      return true;
+    }
+    function arrive(came){
+      if(cr===n-1&&cc===n-1){ M.score=M.goal; Audio.sfx("pop"); return; }
+      if(queued&&!walls[cr][cc][queued]){ const d=queued; queued=null; tryStep(d); return; }
+      const on=ways(cr,cc).filter(d=>d!==OPP[came]);
+      if(on.length===1) tryStep(on[0]);   // a corridor: keep following it
+      else queued=null;                   // a junction or dead end: wait here
     }
     return {
       update(dt){
-        if(moving){
-          moving.t=Math.min(1,moving.t+dt*SPEED);
-          const [fx,fy]=cellPx(moving.fr,moving.fc), [tx,ty]=cellPx(moving.tr,moving.tc);
-          px=lerp(fx,tx,moving.t); py=lerp(fy,ty,moving.t);
-          if(moving.t>=1){
-            cr=moving.tr; cc=moving.tc; moving=null;
-            if(cr===n-1&&cc===n-1){ M.score=M.goal; Audio.sfx("pop"); }
-            else if(desired) tryStep(desired);
-          }
-        } else if(desired) tryStep(desired);
+        if(!moving) return;
+        moving.t=Math.min(1,moving.t+dt*SPEED);
+        const [fx,fy]=cellPx(moving.fr,moving.fc), [tx,ty]=cellPx(moving.tr,moving.tc);
+        px=lerp(fx,tx,moving.t); py=lerp(fy,ty,moving.t);
+        if(moving.t>=1){ const came=moving.dir; cr=moving.tr; cc=moving.tc; moving=null; arrive(came); }
       },
       draw(g){
         g.strokeStyle="rgba(90,70,54,.55)"; g.lineWidth=3; g.lineCap="round";
@@ -4722,9 +4746,9 @@ const MG_BUILD={
         if(!haveRef) return;
         const dx=x-refX, dy=y-refY;
         if(Math.hypot(dx,dy)<size*0.4) return;
-        desired=Math.abs(dx)>Math.abs(dy)?(dx>0?"E":"W"):(dy>0?"S":"N");
+        const dir=Math.abs(dx)>Math.abs(dy)?(dx>0?"E":"W"):(dy>0?"S":"N");
         refX=x; refY=y;
-        tryStep(desired);
+        if(moving) queued=dir; else tryStep(dir,true);
       }
     };
   }
@@ -4744,7 +4768,10 @@ function bindMinigame(){
   });
   addEventListener("pointerup",()=>{ down=false; });
   document.getElementById("mgAction").addEventListener("click",()=>{
-    if(document.getElementById("mgOver").classList.contains("show")) MG.start(MG.cur.id,MG.cat);
+    if(document.getElementById("mgOver").classList.contains("show")){
+      if(MG.cur.id==="homeward"&&!(MG.cat&&MG.cat.away)) MG.close();
+      else MG.start(MG.cur.id,MG.cat);
+    }
     else MG.go();
   });
   document.getElementById("mgQuit").addEventListener("click",()=>MG.close());
