@@ -329,7 +329,7 @@ input,button,textarea{font-family:inherit;color:inherit;}
 .buy.love{background:#F9D2E1;border-color:var(--pink-d);color:#A93D66;box-shadow:0 3px 0 rgba(232,109,154,.5);width:100%;justify-content:center;padding:11px;}
 .buy.wide{width:100%;justify-content:center;padding:11px;}
 .buy:disabled{opacity:.5;cursor:default;transform:none;}
-.coin-mini{width:13px;height:13px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FFE38A,#EBB02E);border:1.5px solid #C98F1C;flex:0 0 auto;}
+.coin-mini{display:inline-block;vertical-align:-2px;margin-right:2px;width:13px;height:13px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FFE38A,#EBB02E);border:1.5px solid #C98F1C;flex:0 0 auto;}
 .coltitle{font-family:'Fredoka';font-weight:600;font-size:13px;margin:12px 0 7px;display:flex;align-items:center;gap:6px;}
 .coltitle:first-child{margin-top:2px;}
 .movebtns{display:flex;gap:5px;flex-wrap:wrap;}
@@ -436,6 +436,7 @@ input,button,textarea{font-family:inherit;color:inherit;}
 .qRow.done{background:#EDF6E6;}
 .qRow .qi{font-size:20px;width:34px;text-align:center;flex:0 0 auto;}
 .qRow .qn{font-weight:800;font-size:12.5px;}
+.qRow .qw{font-size:11px;font-weight:700;color:var(--ink-soft);margin:1px 0 0;line-height:1.35;}
 .qRow .qbar{height:6px;border-radius:4px;background:rgba(123,90,60,.14);margin-top:5px;overflow:hidden;}
 .qRow .qbar>span{display:block;height:100%;background:linear-gradient(90deg,#B7E0F2,var(--energy));border-radius:4px;}
 .qRow .qr{font-weight:900;font-size:11px;color:var(--gold-ink);display:flex;align-items:center;gap:3px;flex:0 0 auto;}
@@ -3008,29 +3009,108 @@ function nextAch(){
 }
 
 /* ═══════════════════════ 15. QUESTS & STREAK ═══════════════════════ */
-const QUEST_POOL=[
-  {id:"q_feed3",  n:"Feed 3 cats",              i:"🍽️", goal:3,  k:"fed",     rw:22},
-  {id:"q_feed6",  n:"Serve 6 meals",            i:"🥣", goal:6,  k:"fed",     rw:36},
-  {id:"q_clean4", n:"Clean 4 messes",           i:"🧹", goal:4,  k:"cleaned", rw:24},
-  {id:"q_pet12",  n:"Give 12 pats",             i:"💗", goal:12, k:"pets",    rw:26},
-  {id:"q_game1",  n:"Win a mini-game",          i:"🎮", goal:1,  k:"games",   rw:30},
-  {id:"q_game3",  n:"Win 3 mini-games",         i:"🕹️", goal:3,  k:"games",   rw:55},
-  {id:"q_place2", n:"Place 2 new pieces",       i:"🛋️", goal:2,  k:"placed",  rw:28},
-  {id:"q_rub1",   n:"Catch a tummy-rub window", i:"✨", goal:1,  k:"rubs",    rw:45},
-];
+/* ── DAILY TASKS, ABOUT YOUR OWN CATS ─────────────────────────────────
+   Tasks are picked each morning from what's actually going on: a cat
+   ready to learn a trick, a room that's dark at night, a Picky eater, the
+   cat nobody's played with. Each has a reason and a "Go" button that takes
+   you to the fix. Two kinds of progress:
+     ev    — counts matching actions (questEvent calls at each action);
+     state — reads the world, and locks in once it's been reached.       */
 function todayKey(){ const d=new Date(); return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`; }
-function rollQuests(){
-  const pool=QUEST_POOL.slice().sort(()=>Math.random()-0.5).slice(0,3);
-  state.questDay=todayKey();
-  state.quests=pool.map(q=>({...q, base:state.stats[q.k]||0, done:false, claimed:false}));
+const catById=id=>state.cats.find(c=>c.id===id);
+const needTrays=r=>Math.max(1,catsIn(r.id).filter(c=>stageIndex(c)>=1).length);
+function focusCat(c){ if(!c) return; if(c.roomId!==state.activeRoom) switchRoom(c.roomId); selectCat(c.id); View.centreOn(c.x); }
+function focusRoom(r){ if(r&&r.id!==state.activeRoom) switchRoom(r.id); }
+const QUEST_TYPES={
+  play:     {ev:"gameWin",     match:(q,d)=>d.cat===q.cat,                 go:q=>{ focusCat(catById(q.cat)); openSheet("games"); }},
+  learn:    {ev:"trickLearnt", match:(q,d)=>d.cat===q.cat&&d.trick===q.trick, go:q=>{ const c=catById(q.cat); focusCat(c); const g=trickGame(TRICKS.find(t=>t.id===q.trick)); closeSheet(); if(g) MG.start(g.id,c); }},
+  trick:    {ev:"trick",       match:(q,d)=>d.cat===q.cat&&d.trick===q.trick, go:q=>{ focusCat(catById(q.cat)); openSheet("tricks"); }},
+  fancyMeal:{ev:"feed",        match:(q,d)=>d.cat===q.cat&&!d.cheap,       go:q=>{ focusCat(catById(q.cat)); openSheet("feed"); }},
+  rub:      {ev:"rub",         match:(q,d)=>d.cat===q.cat,                 go:q=>{ focusCat(catById(q.cat)); closeSheet(); }},
+  feed:     {ev:"feed",        match:()=>true,                             go:()=>openSheet("feed")},
+  pats:     {ev:"pet",         match:()=>true,                             go:()=>closeSheet()},
+  clean:    {ev:"clean",       match:()=>true,                             go:()=>closeSheet()},
+  light:    {state:q=>{ const r=getRoom(q.room); return r&&roomFx(r).light>0?1:0; },        go:q=>{ focusRoom(getRoom(q.room)); openSheet("shop","lighting"); }},
+  post:     {state:q=>{ const r=getRoom(q.room); return r&&scratchSpots(r).length?1:0; },   go:q=>{ focusRoom(getRoom(q.room)); openSheet("shop","cat-gear"); }},
+  tray:     {state:q=>{ const r=getRoom(q.room); return r&&litterSpots(r).length>=q.need?1:0; }, go:q=>{ focusRoom(getRoom(q.room)); openSheet("shop","cat-gear"); }},
+  sparkle:  {state:q=>{ const c=catById(q.cat); return c&&c.hygiene>=80?1:0; },           go:q=>{ focusCat(catById(q.cat)); closeSheet(); }},
+  bondUp:   {state:q=>{ const c=catById(q.cat); return c&&bondLevel(c)>=q.lvl?1:0; },      go:q=>{ focusCat(catById(q.cat)); closeSheet(); }},
+  roomHappy:{state:q=>{ const h=catsIn(q.room); return h.length&&h.every(c=>Math.min(c.tummy,c.energy,c.hygiene,c.mood)>=70)?1:0; }, go:q=>{ focusRoom(getRoom(q.room)); closeSheet(); }},
+};
+function questCandidates(){
+  const C=[], add=(w,q)=>C.push({w,q:{goal:1,prog:0,claimed:false,...q}});
+  const cats=state.cats.filter(c=>!c.away), dayStart=new Date().setHours(0,0,0,0);
+  const lastPlay=c=>Math.max(0,...Object.values(c.lastGameAt||{}));
+  for(const c of cats){
+    const t=traitOf(c), T=TRAITS[t];
+    const ready=TRICKS.find(tr=>!(c.tricks||[]).includes(tr.id)&&c.bond>=tr.bond);
+    if(ready){ const g=trickGame(ready); add(5,{t:"learn",cat:c.id,trick:ready.id,i:ready.emoji,rw:60,
+      n:`Teach ${c.name} ${ready.n}`,why:`Their bond is ready — win ${g.n} together`}); }
+    if(lastPlay(c)<dayStart) add(3,{t:"play",cat:c.id,i:"🎮",rw:30,
+      n:`Play a game with ${c.name}`,why:lastPlay(c)?`They haven't played with you today`:`They've never played a game with you`});
+    if(["naughty","scratchy","accident"].includes(t)&&(c.tricks||[]).includes("sit")) add(3,{t:"trick",cat:c.id,trick:"sit",i:"🪑",rw:25,
+      n:`Keep ${c.name} on best behaviour`,why:`${T.label} — ask for a Sit`});
+    if((c.tricks||[]).includes("dance")&&catsIn(c.roomId).length>1) add(3,{t:"trick",cat:c.id,trick:"dance",i:"💃",rw:35,
+      n:`Throw a dance party with ${c.name}`,why:`Everyone in the room gets a lift`});
+    if(t==="picky") add(3,{t:"fancyMeal",cat:c.id,i:"🐟",rw:25,n:`Find a meal ${c.name} keeps down`,why:`Picky — skip the kibble and treats`});
+    if(c.hygiene<55) add(2,{t:"sparkle",cat:c.id,i:"🫧",rw:25,n:`Get ${c.name} sparkling clean`,why:`Hygiene to 80% — a clean floor and tray does it`});
+    add(1.5,{t:"bondUp",cat:c.id,lvl:bondLevel(c)+1,i:"💞",rw:35,n:`Reach bond level ${bondLevel(c)+1} with ${c.name}`,why:`Pats, tricks and games together`});
+    if(stageIndex(c)>=0&&!c.sick) add(1,{t:"rub",cat:c.id,i:"✨",rw:40,n:`Catch a tummy rub from ${c.name}`,why:(c.tricks||[]).includes("roll")?`Ask for a Roll Over`:`Watch for them rolling over`});
+  }
+  for(const r of state.rooms){
+    const here=catsIn(r.id); if(!here.length) continue;
+    if(roomFx(r).light===0) add(3,{t:"light",room:r.id,i:"💡",rw:40,n:`Light up ${r.name} for night-time`,why:`No lamp — cats get gloomy after dark`});
+    if(!scratchSpots(r).length&&(r.couch<75||here.some(c=>traitOf(c)==="scratchy"))) add(3,{t:"post",room:r.id,i:"🪵",rw:40,
+      n:`Save the sofa in ${r.name}`,why:`Place a scratching post`});
+    const have=litterSpots(r).length, need=needTrays(r);
+    if(have<need) add(4,{t:"tray",room:r.id,need,i:"🚽",rw:40,n:`A tray for every cat in ${r.name}`,why:`${have} tray${have===1?"":"s"} for ${need} cats`});
+    if(here.length>1) add(1,{t:"roomHappy",room:r.id,i:"🌟",rw:60,n:`Everyone in ${r.name} above 70%`,why:`Every need, every cat`});
+  }
+  add(0.6,{t:"feed",goal:5,i:"🍽️",rw:30,n:"Serve 5 meals",why:"Any cat, any food"});
+  add(0.6,{t:"pats",goal:12,i:"💗",rw:26,n:"Give 12 pats",why:"Head, chin, tummy or paws"});
+  add(0.6,{t:"clean",goal:4,i:"🧹",rw:24,n:"Clean 4 messes",why:"Floor or litter tray"});
+  // a state task that's already done isn't a task
+  return C.filter(({q})=>!QUEST_TYPES[q.t].state||QUEST_TYPES[q.t].state(q)<q.goal);
 }
-function ensureQuests(){ if(!state.quests||state.questDay!==todayKey()) rollQuests(); }
-function questProgress(q){ return clamp((state.stats[q.k]||0)-q.base, 0, q.goal); }
+/* three tasks, weighted towards what matters, no two alike or about the same cat */
+function pickQuests(n,keep){
+  const C=questCandidates(), out=[], used=new Set((keep||[]).map(q=>q.t+(q.cat||q.room||""))), catsUsed=new Set((keep||[]).map(q=>q.cat).filter(Boolean));
+  while(out.length<n&&C.length){
+    const pool=C.filter(({q})=>!used.has(q.t+(q.cat||q.room||""))&&!out.some(o=>o.t===q.t)&&!(q.cat&&catsUsed.has(q.cat)&&state.cats.length>1));
+    if(!pool.length) break;
+    let r=Math.random()*pool.reduce((a,x)=>a+x.w,0), pickd=pool[0];
+    for(const x of pool){ r-=x.w; if(r<=0){ pickd=x; break; } }
+    out.push(pickd.q); used.add(pickd.q.t+(pickd.q.cat||pickd.q.room||"")); if(pickd.q.cat) catsUsed.add(pickd.q.cat);
+    C.splice(C.indexOf(pickd),1);
+  }
+  return out;
+}
+function rollQuests(){ state.questDay=todayKey(); state.quests=pickQuests(3); }
+/* new day, an old-style save, or a task about a cat/room that's gone */
+function ensureQuests(){
+  if(!state.quests||state.questDay!==todayKey()||state.quests.some(q=>!q.t||!QUEST_TYPES[q.t])){ rollQuests(); return; }
+  const ok=state.quests.filter(q=>q.claimed||((!q.cat||catById(q.cat))&&(!q.room||getRoom(q.room))));
+  if(ok.length<state.quests.length) state.quests=ok.concat(pickQuests(state.quests.length-ok.length,ok));
+}
+function questProgress(q){
+  const T=QUEST_TYPES[q.t]; if(!T) return 0;
+  if(T.state&&!q.claimed&&q.prog<q.goal){ const v=T.state(q); if(v>=q.goal) q.prog=q.goal; return Math.max(q.prog,v); }
+  return Math.min(q.goal,q.prog||0);
+}
+function questEvent(kind,d){
+  if(!state||!state.quests) return;
+  for(const q of state.quests){
+    const T=QUEST_TYPES[q.t];
+    if(!T||T.ev!==kind||q.claimed||q.prog>=q.goal||!T.match(q,d)) continue;
+    q.prog++;
+    if(q.prog>=q.goal) pushMsg(`📋 Task done: ${q.n} — claim it in the menu`,false);
+  }
+}
 function readyQuests(){ if(!state||!state.quests) return 0; return state.quests.filter(q=>!q.claimed&&questProgress(q)>=q.goal).length; }
 function claimQuest(q){
-  if(q.claimed||questProgress(q)<q.goal) return;
+  if(!q||q.claimed||questProgress(q)<q.goal) return;
   q.claimed=true; state.pts+=q.rw;
-  Audio.sfx("cash"); bumpWallet(); toast(`Quest done — ${q.rw} coins 🪙`);
+  Audio.sfx("cash"); bumpWallet(); toast(`Task done — ${q.rw} coins 🪙`);
   confettiRain(40); renderHUD(); saveGame(); refreshSheet();
 }
 const STREAK_REWARD=d=>Math.min(140, 18+d*11);
@@ -3071,7 +3151,7 @@ function petCat(c,zoneId,cx,cy){
   let pts=Math.max(1,Math.round(Z.pts*hf*(c.sick?0.5:1)));
   let moodGain=Math.max(0.5, Z.mood*hf*MOOD_GAIN_SCALE);
   let reaction=pick(Z.react), heart="💗", granted=0;
-  state.stats.pets++;
+  state.stats.pets++; questEvent("pet",{cat:c.id});
 
   if(inRub){
     Rub.hit(c);
@@ -3138,7 +3218,7 @@ const Rub={
     document.getElementById("comboUI").classList.remove("show");
     if(this.combo>0&&this.cat){
       const bonus=Math.round(this.combo*this.combo*1.6);
-      state.pts+=bonus; state.stats.rubs++;
+      state.pts+=bonus; state.stats.rubs++; questEvent("rub",{cat:this.cat.id});
       this.cat.mood=clamp(this.cat.mood+this.combo*1.4);
       this.cat.bond=clamp(this.cat.bond+this.combo*0.5);
       pushMsg(`${this.combo}-rub combo — bonus ${bonus} coins! 🌟`,false);
@@ -3165,7 +3245,7 @@ function feed(food){
   Audio.sfx("eat");
   if(c.sleeping){ c.sleeping=false; c.behavior="wander"; }
   c.freezeUntil=now()+1600; c._sig=null;
-  state.stats.fed++;
+  state.stats.fed++; questEvent("feed",{cat:c.id,cheap:food.id==="kibble"||food.id==="treat"});
   if(stageIndex(c)>before) growUp(c);
   closeSheet();
   const picky=traitOf(c)==="picky", cheap=(food.id==="kibble"||food.id==="treat");
@@ -3219,7 +3299,7 @@ function checkTrickUnlock(c,gameId){
     if((c.bond||0)<tr.bond||c.tricks.includes(tr.id)) continue;
     const g=trickGame(tr);
     if(gameId&&g&&g.id===gameId){
-      c.tricks.push(tr.id);
+      c.tricks.push(tr.id); questEvent("trickLearnt",{cat:c.id,trick:tr.id});
       pushMsg(`${c.name} learnt ${tr.n} ${tr.emoji} — ${tr.job.toLowerCase()}! Find it under Tricks.`,false);
       Audio.sfx("unlock"); confettiRain(40);
     } else if(!gameId&&g&&!c.trickNudged[tr.id]){
@@ -3296,7 +3376,7 @@ function doTrick(c,trickId){
   if(wait>0){ toast(`${c.name} needs a rest before another ${tr.n} — ${Math.ceil(wait/60000)} min`); return; }
   c.buffs=c.buffs||[];
   if(TRICK_JOBS[tr.id](c)===false) return;
-  c.trickAt=c.trickAt||{}; c.trickAt[tr.id]=now();
+  c.trickAt=c.trickAt||{}; c.trickAt[tr.id]=now(); questEvent("trick",{cat:c.id,trick:tr.id});
   if(tr.id!=="roll") spriteAnim(c,tr.anim,2000);
   c.bond=clamp(c.bond+0.4);
   Audio.sfx("mew"); const g=earnCoins(2);
@@ -3315,7 +3395,7 @@ function cleanPoop(p){
   const r=activeRoom();
   r.poops=r.poops.filter(x=>x.id!==p.id);
   const c=selectedCat(); if(c) c.hygiene=clamp(c.hygiene+6);
-  const g=earnCoins(1); state.stats.cleaned++;
+  const g=earnCoins(1); state.stats.cleaned++; questEvent("clean",{});
   Audio.sfx("pop");
   const [sx,sy]=View.toScreen(p.x,p.y);
   burst("clean",sx,sy,{n:9,shape:"spark",colours:[[1,1,.9]],spMax:110,lifeMax:0.9});
@@ -3512,7 +3592,7 @@ function bestLitterSpot(r,forCat){
 function cleanLitterAt(r,u){
   if(litterClean(r,u)>=100){ toast("That tray's already spotless ✨"); return; }
   setLitterClean(r,u,100);
-  const g=earnCoins(1); state.stats.cleaned++;
+  const g=earnCoins(1); state.stats.cleaned++; questEvent("clean",{});
   Audio.sfx("pop"); emote("scooped! 🧹");
   toast(`Litter tray cleaned 🧹${g>0?" +1":""}`);
   bumpWallet(); touchStreak(); checkAchievements(); renderHUD(); saveGame();
@@ -4294,13 +4374,16 @@ storage(){
 /* ── quests ── */
 quests(){
   ensureQuests();
-  return {h:`<h2>📋 Today's tasks</h2><p class="sub">New tasks each morning. Coins on completion.</p>`,
+  return {h:`<h2>📋 Today's tasks</h2><p class="sub">Picked each morning from what your cats need. Tap Go to jump to it.</p>`,
     b:state.quests.map((q,i)=>{
       const p=questProgress(q), done=p>=q.goal;
+      const btn=q.claimed?`<div class="qr">✓</div>`
+        :done?`<button class="buy use" data-quest="${i}">Claim ${coin(q.rw)}</button>`
+        :`<button class="buy" data-questgo="${i}">Go${q.goal>1?` · ${p}/${q.goal}`:""}</button>`;
       return `<div class="qRow ${q.claimed?"done":""}"><div class="qi">${q.i}</div>
-        <div style="flex:1"><div class="qn">${q.n}</div>
-        <div class="qbar"><span style="width:${p/q.goal*100}%"></span></div></div>
-        ${q.claimed?`<div class="qr">✓</div>`:`<button class="buy ${done?"use":""}" data-quest="${i}" ${done?"":"disabled"}>${done?"Claim "+coin(q.rw):`${p}/${q.goal}`}</button>`}</div>`;
+        <div style="flex:1"><div class="qn">${esc(q.n)}</div>
+        <div class="qw">${esc(q.why||"")} · ${coin(q.rw)}</div>
+        <div class="qbar"><span style="width:${p/q.goal*100}%"></span></div></div>${btn}</div>`;
     }).join("")+
     `<div class="coltitle">Daily streak</div>
      <div class="progWrap"><div class="pt"><span>🔥 ${state.streak||0} day${state.streak===1?"":"s"}</span>
@@ -4490,6 +4573,7 @@ function bindSheet(){
   on("[data-unwear]",e=>{ const c=selectedCat(); delete c.wear[e.currentTarget.dataset.unwear];
     c._sig=null; Audio.sfx("click"); syncSprites(); saveGame(); refreshSheet(); });
   on("[data-quest]",e=>claimQuest(state.quests[+e.currentTarget.dataset.quest]));
+  on("[data-questgo]",e=>{ const q=state.quests[+e.currentTarget.dataset.questgo]; const T=q&&QUEST_TYPES[q.t]; if(T&&T.go) T.go(q); });
   on("[data-open]",e=>openSheet(e.currentTarget.dataset.open));
   on("[data-decorate]",()=>{ closeSheet(); Deco.toggle(true); toast("Decorate mode — drag things about 🎨"); });
   on("[data-photo]",()=>{ closeSheet(); setTimeout(takePhoto,340); });
@@ -4708,7 +4792,7 @@ const MG={
     const fav=c.favGame===def.id;
     let coins=0, moodUp=0, bondUp=0;
     if(win){
-      state.stats.games++;
+      state.stats.games++; questEvent("gameWin",{cat:c.id,game:def.id});
       coins=Math.round((10+this.goal*1.6)*(fav?1.6:1));
       moodUp=(fav?16:11)*MOOD_GAIN_SCALE*1.6;
       bondUp=BOND_PER_GAME*(fav?1.5:1);
