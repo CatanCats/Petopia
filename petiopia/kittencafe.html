@@ -223,6 +223,19 @@ input,button,textarea{font-family:inherit;color:inherit;}
 .fill-growth{background:linear-gradient(90deg,#C6E3AB,var(--growth));}
 .fill-bond{background:linear-gradient(90deg,#EFC4F3,var(--bond));}
 .pct{font-weight:800;font-size:10px;width:34px;text-align:right;color:var(--ink-soft);}
+.stat[data-stat]{cursor:pointer;border-radius:8px;}
+.stat[data-stat]:hover .lbl{color:var(--ink);}
+.stat.open .lbl{color:var(--ink);}
+.trend{width:12px;font-size:10px;font-weight:900;text-align:center;flex:none;}
+.trend.up{color:#3E9B63;} .trend.down{color:#D0533F;} .trend.flat{color:var(--ink-soft);opacity:.5;}
+.why{background:rgba(63,49,40,.05);border-radius:10px;padding:8px 10px;margin:-2px 0 2px 27px;font-size:11px;line-height:1.45;color:var(--ink);animation:whyIn .18s ease;}
+@keyframes whyIn{from{opacity:0;transform:translateY(-3px);}to{opacity:1;transform:none;}}
+.why .wh{font-weight:900;margin-bottom:4px;}
+.why .wr{display:flex;gap:7px;align-items:baseline;}
+.why .wa{flex:none;width:26px;font-size:9px;letter-spacing:-1px;font-weight:900;}
+.why .wa.up{color:#3E9B63;} .why .wa.down{color:#D0533F;}
+.why .tip{margin-top:5px;font-weight:800;color:#9A5B1E;}
+.why .note{margin-top:4px;color:var(--ink-soft);font-style:italic;}
 
 /* ─────────── action bar ─────────── */
 .actions{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;}
@@ -500,12 +513,12 @@ input,button,textarea{font-family:inherit;color:inherit;}
       <span class="who" id="who"><b>Mochi</b></span>
       <span class="badges"><span class="traitPill" id="traitPill">🐾 Easy-going</span><span class="stg" id="stg">Kitten</span></span>
     </div>
-    <div class="stat"><span class="ico">🍗</span><span class="lbl">Tummy</span><div class="bar"><span class="fill-tummy" id="bar-tummy"></span></div><span class="pct" id="pct-tummy"></span></div>
-    <div class="stat"><span class="ico">💗</span><span class="lbl">Mood</span><div class="bar"><span class="fill-mood" id="bar-mood"></span></div><span class="pct" id="pct-mood"></span></div>
-    <div class="stat"><span class="ico">⚡</span><span class="lbl">Energy</span><div class="bar"><span class="fill-energy" id="bar-energy"></span></div><span class="pct" id="pct-energy"></span></div>
-    <div class="stat"><span class="ico">🧼</span><span class="lbl">Hygiene</span><div class="bar"><span class="fill-hygiene" id="bar-hygiene"></span></div><span class="pct" id="pct-hygiene"></span></div>
-    <div class="stat"><span class="ico">🌱</span><span class="lbl">Growth</span><div class="bar"><span class="fill-growth" id="bar-growth"></span></div><span class="pct" id="pct-growth"></span></div>
-    <div class="stat"><span class="ico">💞</span><span class="lbl">Bond</span><div class="bar"><span class="fill-bond" id="bar-bond"></span></div><span class="pct" id="pct-bond"></span></div>
+    <div class="stat" data-stat="tummy" role="button" tabindex="0" aria-expanded="false"><span class="ico">🍗</span><span class="lbl">Tummy</span><div class="bar"><span class="fill-tummy" id="bar-tummy"></span></div><span class="pct" id="pct-tummy"></span><span class="trend" id="tr-tummy"></span></div>
+    <div class="stat" data-stat="mood" role="button" tabindex="0" aria-expanded="false"><span class="ico">💗</span><span class="lbl">Mood</span><div class="bar"><span class="fill-mood" id="bar-mood"></span></div><span class="pct" id="pct-mood"></span><span class="trend" id="tr-mood"></span></div>
+    <div class="stat" data-stat="energy" role="button" tabindex="0" aria-expanded="false"><span class="ico">⚡</span><span class="lbl">Energy</span><div class="bar"><span class="fill-energy" id="bar-energy"></span></div><span class="pct" id="pct-energy"></span><span class="trend" id="tr-energy"></span></div>
+    <div class="stat" data-stat="hygiene" role="button" tabindex="0" aria-expanded="false"><span class="ico">🧼</span><span class="lbl">Hygiene</span><div class="bar"><span class="fill-hygiene" id="bar-hygiene"></span></div><span class="pct" id="pct-hygiene"></span><span class="trend" id="tr-hygiene"></span></div>
+    <div class="stat" data-stat="growth" role="button" tabindex="0" aria-expanded="false"><span class="ico">🌱</span><span class="lbl">Growth</span><div class="bar"><span class="fill-growth" id="bar-growth"></span></div><span class="pct" id="pct-growth"></span><span class="trend" id="tr-growth"></span></div>
+    <div class="stat" data-stat="bond" role="button" tabindex="0" aria-expanded="false"><span class="ico">💞</span><span class="lbl">Bond</span><div class="bar"><span class="fill-bond" id="bar-bond"></span></div><span class="pct" id="pct-bond"></span><span class="trend" id="tr-bond"></span></div>
   </div>
 
   <div class="actions">
@@ -1939,6 +1952,14 @@ const TRICKS=[
    the slowest thing to raise — you earn a happy cat, you don't buy one. */
 const TICK_MS=3500;
 const DECAY={tummy:0.0042, energy:0.0050, mood:0.0062, hygiene:0.0052, tummySleep:0.0020};
+/* Furniture lifts (mood, energy, perch) are written as small numbers in
+   FURNI_DEFS but used to be added raw every tick: 5–23× mood's own decay,
+   60× energy's for the hammock, so one free window out-gained a starving,
+   filthy cat and mood could never fall in a furnished room. They're read
+   as a multiple of the stat's decay instead: a common piece offsets part of
+   the natural drain, the best let a well-kept cat's mood climb, and
+   neglect still pulls it down. */
+const FX_GAIN={mood:DECAY.mood*10, energy:DECAY.energy*5};
 const MOOD_GAIN_SCALE=0.42;      // every mood gain is scaled by this
 const BOND_PER_PET=0.14, BOND_PER_GAME=1.6, BOND_PER_DAY_CARED=2.5;
 const POTTY_INTERVAL=4*3600000;
@@ -2181,6 +2202,95 @@ function roomFx(r){
   return fx;
 }
 function invalidateFx(r){ r._fxTag=(r._fxTag||0)+1; r._fxCache=null; }
+/* the placed piece supplying a room effect (roomFx keeps the best of each) */
+function fxSource(r,k){
+  let best=null;
+  for(const p of r.placed){ const it=ITEM_BY_ID[p.item];
+    if(it&&it.fn&&it.fn.k===k&&(!best||it.fn.v>best.fn.v)) best=it; }
+  return best?best.name:"Furniture";
+}
+/* Everything a room contributes to its cats' stats this tick. */
+function roomCtx(room){
+  const here=catsIn(room.id), poopN=room.poops.length, avgL=roomLitterAvg(room);
+  const litters=litterSpots(room).length;
+  return { room, here, fx:roomFx(room), avgL, poopN, litters,
+    cleanEnv:(poopN===0&&avgL>=60),
+    dirtyLitter:litters?avgL<25:true,
+    badCouch:room.couch<45,
+    socialCat:here.find(c=>traitOf(c)==="social")||null,
+    slot:daySlot(), isActive:room.id===state.activeRoom };
+}
+/* ── STAT RATES ──────────────────────────────────────────────────────
+   How far each need moves on one tick, split into named reasons. tick()
+   applies the sum and the stats panel lists the reasons, so the "why" a
+   player reads is the same maths that moves the bars. Each reason is
+   {label, v (per tick), fix?}; a fix is the tip shown when it's the
+   biggest drag. Multipliers are itemised as the extra they add.        */
+const RATE_STATS=["tummy","energy","hygiene","mood"];
+function catRates(c,X){
+  const fx=X.fx, f=X.isActive?1:0.45, sb=X.socialCat?1.15:1, MGS=MOOD_GAIN_SCALE;
+  const R={tummy:[],energy:[],hygiene:[],mood:[],notes:[]};
+  const add=(k,label,v,fix)=>{ if(Math.abs(v)>1e-9) R[k].push({label,v,fix}); };
+  const social=X.socialCat?(X.socialCat===c?`${c.name} is Social`:`${X.socialCat.name} is Social`):"";
+  const messWhy=X.poopN?["Messy floor","Tap the messes to clean them"]
+    :X.dirtyLitter?(X.litters?["Dirty litter tray","Tap the tray to scoop it"]:["No litter tray","Put a litter tray in this room"])
+    :["Scratched-up sofa","Give them a scratching post"];
+  if(!X.isActive) R.notes.push("Needs change more slowly in rooms you're not looking at.");
+  if(c.sleeping){
+    const bed=fx.bed>0?1:(fx.sleep>0?0.6:0);
+    add("energy","Sleeping",5.5);
+    if(bed) add("energy",`Napping on the ${fxSource(X.room,fx.bed>0?"bed":"sleep")}`,bed*4.5);
+    else R.notes.push("No bed in this room — naps recover energy more slowly.");
+    add("mood","Sleeping",0.5*MGS);
+    if(bed) add("mood","Comfy bed",bed*0.8*MGS);
+    if(sb>1) add("mood",social,(0.5+bed*0.8)*MGS*(sb-1));
+    add("tummy","Getting peckish (slowly, while asleep)",-DECAY.tummySleep*f,"Feed them when they wake");
+    if(X.cleanEnv) add("hygiene","Clean room, clean tray",0.3);
+  } else {
+    const starving=c.tummy<=1;
+    // tummy
+    add("tummy","Getting hungry",-DECAY.tummy*f,"Feed them");
+    if(fx.tummySlow) add("tummy",`${fxSource(X.room,"tummySlow")} (fresh water)`,DECAY.tummy*fx.tummySlow*f);
+    // energy
+    let eD=DECAY.energy;
+    add("energy","Awake and busy",-eD*f,"Let them nap — tap Sleep");
+    if(fx.energy>0) add("energy",fxSource(X.room,"energy"),fx.energy*FX_GAIN.energy);
+    if(starving){ add("energy","Starving",-eD*f,"Feed them now"); eD*=2; }
+    if(X.slot==="night"){ add("energy","Night time",-eD*0.25*f,"Put them to bed"); eD*=1.25; }
+    // hygiene
+    if(X.cleanEnv) add("hygiene","Clean room, clean tray",0.7*(X.isActive?1:0.5));
+    else {
+      let raw=0; const neg=(label,v,fix)=>{ add("hygiene",label,-v,fix); raw+=v; };
+      neg("Everyday grime",DECAY.hygiene*f,"Keep the floor and tray clean");
+      if(X.poopN) neg(`${X.poopN} mess${X.poopN>1?"es":""} on the floor`,X.poopN*0.03*f,"Tap the messes to clean them");
+      if(X.dirtyLitter) neg(X.litters?"Dirty litter tray":"No litter tray",0.025*f,X.litters?"Tap the tray to scoop it":"Put a litter tray in this room");
+      if(traitOf(c)==="vain") add("hygiene","Vain — grooms themselves",raw*0.3);
+    }
+    // the tick checked "hungry / tired / grubby" after moving those three
+    const sumOf=k=>R[k].reduce((a,p)=>a+p.v,0);
+    const tA=clamp(c.tummy+sumOf("tummy"));
+    const eA=clamp(clamp(c.energy+(fx.energy>0?fx.energy*FX_GAIN.energy:0))-eD*f);
+    const hA=clamp(c.hygiene+sumOf("hygiene"));
+    // mood
+    let mD=DECAY.mood;
+    add("mood","Everyday ups and downs",-mD*f);
+    if(fx.moodSlow){ add("mood",`${fxSource(X.room,"moodSlow")} keeps spirits up`,mD*fx.moodSlow*f); mD*=(1-fx.moodSlow); }
+    if(tA<30||eA<25||hA<30){
+      const low=[tA<30&&["hungry","Feed them"],eA<25&&["tired","Let them nap — tap Sleep"],hA<30&&["grubby","Clean up the room"]].filter(Boolean);
+      add("mood",`Feeling ${low.map(x=>x[0]).join(", ")}`,-mD*0.8*f,low[0][1]); mD*=1.8;
+    }
+    if(starving){ add("mood","Starving",-mD*2*f,"Feed them now"); mD*=3; }
+    if(X.badCouch||X.dirtyLitter||X.poopN>0){ add("mood",messWhy[0],-mD*0.15*f,messWhy[1]); mD*=1.15; }
+    if(fx.mood>0){ const g=fx.mood*FX_GAIN.mood; add("mood",fxSource(X.room,"mood"),g); if(sb>1) add("mood",social,g*(sb-1)); }
+    if(fx.perch>0) add("mood",`${fxSource(X.room,"perch")} — birdwatching`,fx.perch*0.6*FX_GAIN.mood);
+    if(traitOf(c)==="vain"&&Object.keys(c.wear||{}).length) add("mood","Vain — loves their outfit",0.25);
+    if(X.slot==="night"&&fx.light===0){ add("mood","Dark room at night",-mD*0.2*f,"Place a lamp in this room"); mD*=1.2; }
+  }
+  // timed effects (tricks, weather…) — each carries its own label
+  for(const b of (c.buffs||[])) if(now()<b.until) add(b.stat,b.label,b.v);
+  return R;
+}
+const rateSum=list=>list.reduce((a,p)=>a+p.v,0);
 function playSpots(r){ return r.placed.filter(p=>{const it=ITEM_BY_ID[p.item]; return it&&it.fn&&it.fn.k==="play";}); }
 function scratchSpots(r){ return r.placed.filter(p=>{const it=ITEM_BY_ID[p.item]; return it&&it.fn&&it.fn.k==="scratch";}); }
 function bedSpots(r){ return r.placed.filter(p=>{const it=ITEM_BY_ID[p.item]; return it&&it.fn&&(it.fn.k==="bed"||it.fn.k==="sleep");}); }
@@ -2591,6 +2701,76 @@ function renderNameStack(){
     el.appendChild(chip);
   }
 }
+/* ── WHY A STAT IS MOVING ────────────────────────────────────────────
+   Trend arrows on every bar, and tap a bar to see the named reasons,
+   straight from catRates() — the same maths tick() applies.           */
+function etaText(ms){
+  const m=ms/60000;
+  if(m<1) return "under a minute";
+  if(m<60) return `about ${Math.round(m)} min`;
+  const h=m/60; return `about ${h<10?h.toFixed(1).replace(/\.0$/,""):Math.round(h)} h`;
+}
+const Why={
+  open:null,
+  toggle(k){ this.open=this.open===k?null:k; this.render(); },
+  rates(c){ const room=getRoom(c.roomId); return room?catRates(c,roomCtx(room)):null; },
+  arrows(v,base){ const n=Math.abs(v)<base*1.5?1:Math.abs(v)<base*4?2:3; return (v>0?"▲":"▼").repeat(n); },
+  needHTML(c,k,R){
+    const list=R[k].slice().sort((a,b)=>Math.abs(b.v)-Math.abs(a.v)), net=rateSum(list), base=DECAY[k], val=c[k];
+    const word={tummy:"Tummy",energy:"Energy",hygiene:"Hygiene",mood:"Mood"}[k];
+    let head;
+    if(Math.abs(net)<base*0.05) head=`${word} is holding steady`;
+    else if(net<0) head=val<=0.5?`${word} is empty!`:`${word} is falling · empty in ${etaText(val/-net*TICK_MS)} at this rate`;
+    else head=val>=99.5?`${word} is full`:`${word} is rising · full in ${etaText((100-val)/net*TICK_MS)} at this rate`;
+    const rows=list.map(p=>`<div class="wr"><span class="wa ${p.v>0?"up":"down"}">${this.arrows(p.v,base)}</span><span>${esc(p.label)}</span></div>`).join("");
+    const worst=list.filter(p=>p.v<0&&p.fix).sort((a,b)=>a.v-b.v)[0];
+    const tip=worst&&net<0?`<div class="tip">💡 ${esc(worst.fix)}</div>`:"";
+    const notes=R.notes.map(n=>`<div class="note">${esc(n)}</div>`).join("");
+    return `<div class="wh">${head}</div>${rows}${tip}${notes}`;
+  },
+  growthHTML(c){
+    const si=stageIndex(c), next=STAGES[si+1];
+    const lines=[c.sick?`🤒 Not growing while unwell — get them healthy first.`:`Grows every time they eat — heartier meals grow them faster.`,
+      `Toys and winning games together help too.`];
+    if(traitOf(c)==="greedy") lines.push(`Greedy Guts: grows extra from the auto-feeder.`);
+    return `<div class="wh">${next?`Growing into a ${next.label}`:`Fully grown! 🎉`}</div>`+lines.map(l=>`<div class="wr"><span>${esc(l)}</span></div>`).join("");
+  },
+  bondHTML(c){
+    const wb=wellbeing(c), passive=wb>78&&!c.sick;
+    const next=TRICKS.find(t=>!(c.tricks||[]).includes(t.id));
+    const rows=[
+      [passive?"▲":"","Pats, tricks, toys and games together all build bond"],
+      [passive?"▲":"",passive?`Growing on its own — they're really happy`:`Keep all four needs high (average over 78%) and it grows on its own · now ${Math.round(wb)}%`],
+    ];
+    if(traitOf(c)==="shy") rows.push(["","Shy: warms up to pats more slowly"]);
+    const nx=next?`<div class="tip">🎓 Next trick: ${esc(next.n)} ${next.emoji} at bond ${next.bond}</div>`:`<div class="tip">🎓 Knows every trick!</div>`;
+    return `<div class="wh">Bond level ${bondLevel(c)}</div>`+rows.map(([a,t])=>`<div class="wr"><span class="wa up">${a}</span><span>${esc(t)}</span></div>`).join("")+nx;
+  },
+  render(){
+    const c=state&&selectedCat(), stats=document.getElementById("stats");
+    const R=c?this.rates(c):null;
+    for(const k of RATE_STATS){
+      const el=document.getElementById("tr-"+k); if(!el) continue;
+      if(!R){ el.textContent=""; continue; }
+      const net=rateSum(R[k]), flat=Math.abs(net)<DECAY[k]*0.05;
+      el.textContent=flat?"•":net>0?"▲":"▼";
+      el.className="trend "+(flat?"flat":net>0?"up":"down");
+      el.title=flat?"Steady":net>0?"Rising":"Falling";
+    }
+    stats.querySelectorAll(".stat[data-stat]").forEach(r=>{ const on=r.dataset.stat===this.open; r.classList.toggle("open",on); r.setAttribute("aria-expanded",on); });
+    // keep an open box in place and just refresh its text, so the HUD's
+    // frequent redraws don't replay its fade-in
+    let box=stats.querySelector(".why");
+    if(box&&(!c||box.dataset.for!==this.open)){ box.remove(); box=null; }
+    if(!c||!this.open) return;
+    const html=this.open==="growth"?this.growthHTML(c):this.open==="bond"?this.bondHTML(c):R?this.needHTML(c,this.open,R):"";
+    if(!box){
+      const row=stats.querySelector(`.stat[data-stat="${this.open}"]`); if(!row) return;
+      box=document.createElement("div"); box.className="why"; box.dataset.for=this.open; row.after(box);
+    }
+    if(box.innerHTML!==html) box.innerHTML=html;
+  }
+};
 function setBar(k,v,label){
   const b=document.getElementById("bar-"+k); if(!b) return;
   b.style.width=clamp(v)+"%";
@@ -2612,6 +2792,7 @@ function renderHUD(){
   const prev=si===0?0:STAGES[si-1].until, next=STAGES[si].until;
   setBar("growth", next===null?100:clamp(Math.round((c.growth-prev)/(next-prev)*100)), next===null?"MAX":null);
   setBar("bond", c.bond||0, `Lv${bondLevel(c)}`);
+  Why.render();
   document.getElementById("sleepLbl").textContent=c.sleeping?"Wake":"Sleep";
   document.getElementById("sleepEmoji").textContent=c.sleeping?"☀️":"😴";
   const endangered=state.cats.filter(x=>x.danger>=2&&!x.away);
@@ -3517,51 +3698,21 @@ function tick(){
   if(!state) return;
   const dead=[], away=[], slot=daySlot();
   for(const room of state.rooms){
-    const here=catsIn(room.id);
-    const fx=roomFx(room);
-    const avgL=roomLitterAvg(room);
-    const poopN=room.poops.length;
-    const cleanEnv=(poopN===0&&avgL>=60);
-    const dirtyLitter=litterSpots(room).length?avgL<25:true;
-    const badCouch=room.couch<45;
-    const socialBoost=here.some(c=>traitOf(c)==="social")?1.15:1;
+    const X=roomCtx(room), here=X.here;
     for(const c of here){
-      const isActive=room.id===state.activeRoom, f=isActive?1:0.45;
+      const isActive=X.isActive;
+      c.buffs=(c.buffs||[]).filter(b=>now()<b.until);
+      const R=catRates(c,X);
+      for(const k of RATE_STATS) c[k]=clamp(c[k]+rateSum(R[k]));
       if(c.sleeping){
-        const bed=fx.bed>0?1:(fx.sleep>0?0.6:0);
-        c.energy=clamp(c.energy+(5.5+bed*4.5));
-        c.mood=clamp(c.mood+(0.5+bed*0.8)*MOOD_GAIN_SCALE*socialBoost);
-        c.tummy=clamp(c.tummy-DECAY.tummySleep*f);
-        if(cleanEnv) c.hygiene=clamp(c.hygiene+0.3);
         if(c.energy>=100){
           c.sleeping=false; c.behavior="wander"; c.behaviorUntil=0; c._sig=null;
           if(traitOf(c)==="sleepy") c.mood=clamp(c.mood+6);
           if(isActive) pushMsg(`${c.name} woke up refreshed ☀️`,false);
         }
-      } else {
-        const starving=c.tummy<=1;
-        let tD=DECAY.tummy*(1-(fx.tummySlow||0));
-        c.tummy=clamp(c.tummy-tD*f);
-        let eD=DECAY.energy;
-        if(fx.energy>0) c.energy=clamp(c.energy+fx.energy);
-        if(starving) eD*=2;
-        if(slot==="night") eD*=1.25;
-        c.energy=clamp(c.energy-eD*f);
-        if(cleanEnv) c.hygiene=clamp(c.hygiene+0.7*(isActive?1:0.5));
-        else c.hygiene=clamp(c.hygiene-(DECAY.hygiene+poopN*0.03+(dirtyLitter?0.025:0))*f*(traitOf(c)==="vain"?0.7:1));
-        let mD=DECAY.mood*(1-(fx.moodSlow||0));
-        if(c.tummy<30||c.energy<25||c.hygiene<30) mD*=1.8;
-        if(starving) mD*=3;
-        if(badCouch||dirtyLitter||poopN>0) mD*=1.15;
-        if(fx.mood>0) c.mood=clamp(c.mood+fx.mood*socialBoost);
-        if(fx.perch>0) c.mood=clamp(c.mood+fx.perch*0.6);
-        if(traitOf(c)==="vain"&&Object.keys(c.wear||{}).length) c.mood=clamp(c.mood+0.25);
-        if(slot==="night"&&fx.light===0) mD*=1.2;
-        c.mood=clamp(c.mood-mD*f);
-        if(c.energy<=0){
-          c.energy=0; c.sleeping=true; c.behavior="nap"; c._sig=null;
-          pushMsg(`${c.name} collapsed asleep from exhaustion 😴`,false);
-        }
+      } else if(c.energy<=0){
+        c.energy=0; c.sleeping=true; c.behavior="nap"; c._sig=null;
+        pushMsg(`${c.name} collapsed asleep from exhaustion 😴`,false);
       }
       // tummy-rub window
       if(!c.sleeping&&!c.sick&&c.mood>55&&now()>c.rubAt&&now()>c.rubUntil){ Rub.open(c); }
@@ -4835,8 +4986,14 @@ function bindUI(){
   });
   document.getElementById("scrim").addEventListener("click",closeSheet);
   document.getElementById("stats").addEventListener("click",e=>{
-    if(e.target.closest(".bar")) return;
+    if(e.target.closest(".why")) return;
+    const row=e.target.closest(".stat[data-stat]");
+    if(row){ Why.toggle(row.dataset.stat); return; }
     openSheet("cat");
+  });
+  document.getElementById("stats").addEventListener("keydown",e=>{
+    const row=e.target.closest(".stat[data-stat]");
+    if(row&&(e.key==="Enter"||e.key===" ")){ e.preventDefault(); Why.toggle(row.dataset.stat); }
   });
   document.getElementById("dbDone").addEventListener("click",()=>Deco.toggle(false));
   document.getElementById("dbAdd").addEventListener("click",()=>openSheet("storage"));
