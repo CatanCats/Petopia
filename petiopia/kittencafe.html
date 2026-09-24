@@ -99,6 +99,9 @@ input,button,textarea{font-family:inherit;color:inherit;}
 .catsLayer{position:absolute;inset:0;z-index:4;pointer-events:none;}
 .uiLayer{position:absolute;inset:0;z-index:8;pointer-events:none;}
 .uiLayer > *{pointer-events:auto;}
+#playCv{position:absolute;inset:0;width:100%;height:100%;display:none;touch-action:none;cursor:crosshair;}
+.playQuit{position:absolute;right:10px;bottom:10px;display:none;border:0;cursor:pointer;background:rgba(255,253,248,.95);
+  border-radius:999px;padding:7px 13px;font-weight:800;font-size:12px;color:var(--ink);box-shadow:0 3px 0 var(--shadow);}
 
 /* scroll rail */
 .rail{position:absolute;left:50%;transform:translateX(-50%);bottom:6px;width:76px;height:5px;border-radius:4px;
@@ -446,6 +449,11 @@ input,button,textarea{font-family:inherit;color:inherit;}
 .qRow.done{background:#EDF6E6;}
 .qRow .qi{font-size:20px;width:34px;text-align:center;flex:0 0 auto;}
 .qRow .qn{font-weight:800;font-size:12.5px;}
+.pickCard{display:flex;gap:11px;align-items:center;background:linear-gradient(135deg,#FFF3D9,#FFE3EA);border-radius:16px;padding:11px 12px;
+  margin-bottom:8px;box-shadow:0 4px 0 var(--shadow);border:2px solid rgba(240,160,61,.35);}
+.pickCard .pcE{font-size:30px;width:40px;text-align:center;}
+.pickCard .pcT{font-weight:900;font-size:13.5px;}
+.pickCard .pcW{font-size:11px;font-weight:700;color:var(--ink-soft);margin-top:2px;line-height:1.35;}
 .qRow .qw{font-size:11px;font-weight:700;color:var(--ink-soft);margin:1px 0 0;line-height:1.35;}
 .qRow .qbar{height:6px;border-radius:4px;background:rgba(123,90,60,.14);margin-top:5px;overflow:hidden;}
 .qRow .qbar>span{display:block;height:100%;background:linear-gradient(90deg,#B7E0F2,var(--energy));border-radius:4px;}
@@ -502,6 +510,8 @@ input,button,textarea{font-family:inherit;color:inherit;}
     <div class="catsLayer" id="catsLayer"></div>
     <canvas id="glFx"></canvas>
     <div class="uiLayer" id="uiLayer">
+      <canvas id="playCv"></canvas>
+      <button class="playQuit" id="playQuit">✕ Stop playing</button>
       <div class="nameStack" id="nameStack"></div>
       <div class="timeChip" id="timeChip">☀️ <span id="timeLbl">Morning</span></div>
       <div class="dangerBanner" id="dangerBanner"></div>
@@ -534,8 +544,8 @@ input,button,textarea{font-family:inherit;color:inherit;}
 
   <div class="actions">
     <button class="act feed" data-sheet="feed"><span class="e">🍽️</span>Feed</button>
-    <button class="act play" data-sheet="play"><span class="e">🧶</span>Play</button>
-    <button class="act games" data-sheet="games"><span class="e">🎮</span>Games</button>
+    <button class="act play" data-sheet="play"><span class="e">🎾</span>Play</button>
+    <button class="act games" data-sheet="tricks"><span class="e">🎓</span>Tricks</button>
     <button class="act sleep" id="sleepBtn"><span class="e" id="sleepEmoji">😴</span><span id="sleepLbl">Sleep</span></button>
     <button class="act shop" data-sheet="shop"><span class="e">🛍️</span>Shop</button>
   </div>
@@ -2618,7 +2628,7 @@ function positionSprites(){
     if(xpx<-160||xpx>V.w+160){ el.style.visibility="hidden"; continue; }
     el.style.visibility="visible";
     const hop=c.hop?Math.abs(Math.sin(c.hop))*4:0;
-    el.style.transform=`translate(${xpx-px*0.556*scale}px, ${-(V.h-ypx)-hop}px) scale(${scale})`;
+    el.style.transform=`translate(${xpx-px*0.556*scale}px, ${-(V.h-ypx)-hop-(c.lift||0)}px) scale(${scale})`;
     el.style.zIndex=String(Math.round(c.y*200)+(c.id===state.selected?400:0));
     const moving=!c.sleeping&&c.hop>0.1&&!(c.freezeUntil&&t<c.freezeUntil);
     el.classList.toggle("walking",moving);
@@ -3062,8 +3072,8 @@ const needTrays=r=>Math.max(1,catsIn(r.id).filter(c=>stageIndex(c)>=1).length);
 function focusCat(c){ if(!c) return; if(c.roomId!==state.activeRoom) switchRoom(c.roomId); selectCat(c.id); View.centreOn(c.x); }
 function focusRoom(r){ if(r&&r.id!==state.activeRoom) switchRoom(r.id); }
 const QUEST_TYPES={
-  play:     {ev:"gameWin",     match:(q,d)=>d.cat===q.cat,                 go:q=>{ focusCat(catById(q.cat)); openSheet("games"); }},
-  learn:    {ev:"trickLearnt", match:(q,d)=>d.cat===q.cat&&d.trick===q.trick, go:q=>{ const c=catById(q.cat); focusCat(c); const g=trickGame(TRICKS.find(t=>t.id===q.trick)); closeSheet(); if(g) MG.start(g.id,c); }},
+  play:     {ev:"gameWin",     match:(q,d)=>d.cat===q.cat,                 go:q=>{ focusCat(catById(q.cat)); openSheet("play"); }},
+  learn:    {ev:"trickLearnt", match:(q,d)=>d.cat===q.cat&&d.trick===q.trick, go:q=>{ const c=catById(q.cat); focusCat(c); const g=trickGame(TRICKS.find(t=>t.id===q.trick)); if(g) playGame(g.id,c); }},
   trick:    {ev:"trick",       match:(q,d)=>d.cat===q.cat&&d.trick===q.trick, go:q=>{ focusCat(catById(q.cat)); openSheet("tricks"); }},
   fancyMeal:{ev:"feed",        match:(q,d)=>d.cat===q.cat&&!d.cheap,       go:q=>{ focusCat(catById(q.cat)); openSheet("feed"); }},
   rub:      {ev:"rub",         match:(q,d)=>d.cat===q.cat,                 go:q=>{ focusCat(catById(q.cat)); closeSheet(); }},
@@ -3272,7 +3282,8 @@ const Rub={
 
 function feed(food){
   const c=selectedCat();
-  if(!spend(food.cost)) return;
+  const fromPantry=food.id==="fish"&&(state.pantry&&state.pantry.fish>0);
+  if(fromPantry) state.pantry.fish--; else if(!spend(food.cost)) return;
   const before=stageIndex(c);
   c.tummy=clamp(c.tummy+food.tummy);
   c.mood=clamp(c.mood+(food.mood||0)*MOOD_GAIN_SCALE);
@@ -3425,6 +3436,7 @@ function doTrick(c,trickId){
   if(currentSheet==="tricks") refreshSheet();
 }
 function toggleSleep(){
+  if(Play.on) Play.quit();
   const c=selectedCat();
   c.sleeping=!c.sleeping; c.behavior=c.sleeping?"nap":"wander"; c.behaviorUntil=0;
   emote(c.sleeping?"zzz… 💤":"*stretch* ☀️");
@@ -3866,6 +3878,7 @@ function frame(ts){
     const t=now();
     View.camX+=(View.camTarget-View.camX)*Math.min(1,dt*9);
     for(const c of catsIn(state.activeRoom)){
+      if(c.gameCtl) continue;                       // the in-room game drives this one
       if(c.sleeping){ c.hop=0; continue; }
       if(c.freezeUntil&&t<c.freezeUntil){ c.hop=0; continue; }
       if(c.behavior==="idle"){ if(t>=c.behaviorUntil) assignBehavior(c); c.hop=0; maybeIdleAnim(c); continue; }
@@ -3888,6 +3901,7 @@ function frame(ts){
         if(d<0.02) arrive(c); else { c.x+=dx/d*0.05*dt; c.y+=dy/d*0.05*dt; }
       }
     }
+    if(Play.on) Play.frame(dt);
     positionSprites();
     positionFurniHits();
     if(roomNeedsRedraw(ts/1000)) drawRoom(ts/1000);
@@ -3926,11 +3940,11 @@ function tick(){
         pushMsg(`${c.name} collapsed asleep from exhaustion 😴`,false);
       }
       // tummy-rub window
-      if(!c.sleeping&&!c.sick&&!isBreeding(c)&&c.mood>55&&now()>c.rubAt&&now()>c.rubUntil){ Rub.open(c); }
+      if(!c.sleeping&&!c.sick&&!isBreeding(c)&&!c.gameCtl&&c.mood>55&&now()>c.rubAt&&now()>c.rubUntil){ Rub.open(c); }
       if(now()>c.rubUntil&&Rub.cat===c) Rub.close();
 
       const wb=wellbeing(c);
-      if(!c.sleeping&&!isBreeding(c)){
+      if(!c.sleeping&&!isBreeding(c)&&!c.gameCtl){
         let spew=0.0012;
         if(traitOf(c)==="accident") spew*=3;
         if(c.sick) spew*=2;
@@ -4015,6 +4029,7 @@ function checkSynergies(room){
 
 /* ═══════════════════════ 23. ROOMS, ADOPTION, BREEDING ═══════════════════════ */
 function switchRoom(id){
+  if(Play.on) Play.quit();
   state.activeRoom=id;
   for(const k in spriteEls){ spriteEls[k].remove(); delete spriteEls[k]; }
   for(const k in furniHitEls){ furniHitEls[k].remove(); delete furniHitEls[k]; }
@@ -4256,39 +4271,36 @@ feed(){
   return {h:`<h2>🍽️ Feed ${esc(c.name)}</h2><p class="sub">${coin(state.pts)} in the tin · tummy ${Math.round(c.tummy)}%</p>`,
     b:FOODS.map(f=>`<div class="item"><div class="big">${f.e}</div><div class="info">
       <div class="nm">${f.n}</div><div class="ds">+${f.tummy} tummy · +${f.xp} growth${f.mood?` · +${f.mood} mood`:""}${f.cure?" · cures illness":""}<br>${f.desc}</div></div>
-      <button class="buy" data-feed="${f.id}" ${state.pts<f.cost?"disabled":""}>${coin(f.cost)}</button></div>`).join("")};
+      ${f.id==="fish"&&state.pantry&&state.pantry.fish>0
+        ?`<button class="buy use" data-feed="${f.id}">🐟 Free · ${state.pantry.fish} in pantry</button>`
+        :`<button class="buy" data-feed="${f.id}" ${state.pts<f.cost?"disabled":""}>${coin(f.cost)}</button>`}</div>`).join("")};
 },
 /* ── toys ── */
 play(){
-  const c=selectedCat();
-  const ready=canPlayNow(c);
+  const c=selectedCat(), rec=recommendGame(c), ready=canPlayNow(c);
   const owned=TOYS.filter(t=>state.toys.includes(t.id));
-  const rest=TOYS.filter(t=>!state.toys.includes(t.id));
-  return {h:`<h2>🧶 Play with ${esc(c.name)}</h2><p class="sub">${ready?"Ready for a play.":`${c.name} needs a breather — try again shortly.`}</p>`,
-    b:(owned.length?`<div class="coltitle">Your toys</div>`+owned.map(t=>
-        `<div class="item"><div class="big">${t.e}</div><div class="info"><div class="nm">${t.n}</div>
-        <div class="ds">+${t.mood} mood · ${t.energy>0?"+":""}${t.energy} energy · +${t.xp} growth</div></div>
-        <button class="buy use" data-toy="${t.id}" ${ready?"":"disabled"}>Play</button></div>`).join("")
-      :`<div class="empty"><span class="bigemo">🧺</span>No toys yet — grab one below.</div>`)
-      +(rest.length?`<div class="coltitle">Toy shop</div>`+rest.map(t=>
-        `<div class="item"><div class="big">${t.e}</div><div class="info"><div class="nm">${t.n}</div>
-        <div class="ds">+${t.mood} mood · ${t.energy>0?"+":""}${t.energy} energy</div></div>
-        <button class="buy" data-buytoy="${t.id}" ${state.pts<t.cost?"disabled":""}>${coin(t.cost)}</button></div>`).join(""):"")};
-},
-/* ── mini-games ── */
-games(){
-  const c=selectedCat();
-  const rows=MINIGAMES.map(g=>{
-    const last=(c.lastGameAt&&c.lastGameAt[g.id])||0;
-    const left=Math.max(0,g.cooldown-(now()-last));
-    const fav=c.favGame===g.id;
-    const mins=Math.ceil(left/60000);
+  const card=g=>{
+    const left=gameRest(c,g), tired=c.energy<(g.minEnergy||0), fav=c.favGame===g.id;
+    const teach=TRICKS.find(t=>t.id===g.trick&&!(c.tricks||[]).includes(t.id));
+    const label=c.sleeping?"Asleep":left?`${Math.ceil(left/60000)} min`:tired?"Tired":"Play";
     return `<div class="item"><div class="big">${g.emoji}</div><div class="info">
-      <div class="nm">${g.n} ${fav?`<span class="traitPill">⭐ favourite</span>`:""}</div>
-      <div class="ds">${g.d}<br>${left>0?`Ready in ${mins} min`:`Difficulty: ${["easy","normal","hard"][stageIndex(c)]}`}</div></div>
-      <button class="buy use" data-game="${g.id}" ${left>0?"disabled":""}>${left>0?"Resting":"Play"}</button></div>`;
-  }).join("");
-  return {h:`<h2>🎮 Mini-games</h2><p class="sub">${esc(c.name)} earns extra mood, bond and coins. Each game rests for a while after a round.</p>`, b:rows};
+      <div class="nm">${g.n}${fav?` <span class="traitPill">⭐ favourite</span>`:""}</div>
+      <div class="ds">${g.role}${teach?`<br>🎓 Teaches ${teach.n} (bond ${teach.bond})`:""}</div></div>
+      <button class="buy use" data-play="${g.id}" ${label==="Play"?"":"disabled"}>${label}</button></div>`;
+  };
+  const top=rec?`<div class="pickCard">
+      <div class="pcE">${rec.g.emoji}</div>
+      <div style="flex:1"><div class="pcT">${esc(c.name)} wants to play ${rec.g.n}</div>
+      <div class="pcW">${esc(rec.why)} · ${rec.g.where==="room"?"right here in the room":"an outing"}</div></div>
+      <button class="buy use" data-play="${rec.g.id}">Play</button></div>`
+    :`<div class="empty"><span class="bigemo">😴</span>${c.sleeping?`${esc(c.name)} is asleep.`:`${esc(c.name)} needs a rest — the games are recharging.`}</div>`;
+  const inRoom=MINIGAMES.filter(g=>g.where==="room"), out=MINIGAMES.filter(g=>g.where==="out");
+  const toys=owned.length?owned.map(t=>`<button class="mv" data-toy="${t.id}" ${ready&&!c.sleeping?"":"disabled"}>${t.e} ${t.n}</button>`).join("")
+    :`<span class="ds" style="font-size:12px;font-weight:700;color:var(--ink-soft)">No toys yet — find them in Shop → Toys.</span>`;
+  return {h:`<h2>🎾 Play with ${esc(c.name)}</h2><p class="sub">Energy ${Math.round(c.energy)}% · every game has its own reward.</p>`,
+    b:top+`<div class="coltitle">Right here in the room</div>`+inRoom.map(card).join("")
+      +`<div class="coltitle">Outings</div>`+out.map(card).join("")
+      +`<div class="coltitle">Quick play with a toy</div><div class="movebtns">${toys}</div>`};
 },
 /* ── shop ── */
 shop(){
@@ -4628,7 +4640,7 @@ function bindSheet(){
   on("[data-buytoy]",e=>{ const t=TOYS.find(x=>x.id===e.currentTarget.dataset.buytoy); if(!t) return;
     if(!spend(t.cost)) return; state.toys.push(t.id); state.owned["t_"+t.id]=1;
     Audio.sfx("coin"); toast(`Bought ${t.n} ${t.e}`); checkAchievements(); renderHUD(); saveGame(); refreshSheet(); });
-  on("[data-game]",e=>{ closeSheet(); MG.start(e.currentTarget.dataset.game); });
+  on("[data-play]",e=>playGame(e.currentTarget.dataset.play,selectedCat()));
   on("[data-room]",e=>buyRoom(e.currentTarget.dataset.room));
   on("[data-goroom]",e=>{ switchRoom(e.currentTarget.dataset.goroom); refreshSheet(); });
   on("[data-adopt]",e=>adoptFromShelter(e.currentTarget.dataset.adopt));
@@ -4748,18 +4760,95 @@ function applyTheme(){
 }
 
 /* ═══════════════════════ 27. MINI-GAMES ═══════════════════════ */
+/* Each game has a place and a purpose. Room games happen on the stage with
+   the real cat (see Play); outings keep their own screen. Every game also
+   does its own job on top of mood, bond and coins, so which one you pick
+   depends on the cat in front of you.
+     energy/growth: what a win does to them (default −6 energy, +8 growth)
+     minEnergy: too tired below this                                    */
 const MINIGAMES=[
-  {id:"feather", n:"Feather Chase", emoji:"🪶", cooldown:14*60000, trick:"sit",
-   d:"Tap the feather before it flits away.", scale:[7,10,13]},
-  {id:"yarn",    n:"Yarn Maze",     emoji:"🧶", cooldown:16*60000, trick:"roll",
-   d:"Steer the yarn ball through the gaps.", scale:[6,9,12]},
-  {id:"fishing", n:"Rockpool Fishing", emoji:"🐟", cooldown:18*60000, trick:"high5",
-   d:"Stop the marker in the blue to hook one.", scale:[4,6,8]},
-  {id:"laser",   n:"Laser Dash",    emoji:"🔴", cooldown:15*60000, trick:"speak",
-   d:"Pounce on the dot — it never sits still.", scale:[9,13,17]},
-  {id:"purr",    n:"Purr Rhythm",   emoji:"🎵", cooldown:20*60000, trick:"dance",
-   d:"Tap each note as it reaches the line.", scale:[8,11,14]},
+  {id:"laser",   n:"Laser Dash",    emoji:"🔴", where:"room", cooldown:15*60000, trick:"speak", energy:-10, minEnergy:25,
+   d:"Drag the dot across the floor — your cat gives chase and pounces.",
+   role:"Burns off energy. A tuckered-out cat stays on best behaviour for 10 min.",
+   room:{goal:[5,7,9], time:22, intro:"Drag the red dot around the floor — keep it moving!"}},
+  {id:"feather", n:"Feather Chase", emoji:"🪶", where:"room", cooldown:14*60000, trick:"sit", minEnergy:20,
+   d:"The feather swings overhead — tap to leap as it swoops past.",
+   role:"Playing together — extra bond.",
+   room:{goal:[4,5,6], time:24, intro:"Tap to leap as the feather swoops past!"}},
+  {id:"fishing", n:"Rockpool Fishing", emoji:"🐟", where:"out", cooldown:18*60000, trick:"high5", minEnergy:15,
+   d:"Stop the marker in the blue to hook one.", scale:[4,6,8],
+   role:"An outing to the rockpool — brings home a fish for a free meal."},
+  {id:"yarn",    n:"Yarn Maze",     emoji:"🧶", where:"out", cooldown:16*60000, trick:"roll", growth:20, minEnergy:15,
+   d:"Steer the yarn ball through the gaps.", scale:[6,9,12],
+   role:"Puzzle play — a big growth boost."},
+  {id:"purr",    n:"Purr Rhythm",   emoji:"🎵", where:"out", cooldown:20*60000, trick:"dance", energy:10, minEnergy:0,
+   d:"Tap each note as it reaches the line.", scale:[8,11,14],
+   role:"A calm session — restores energy, so tired cats can still play."},
 ];
+const gameById=id=>MINIGAMES.find(g=>g.id===id);
+function gameRest(c,g){ return Math.max(0,g.cooldown-(now()-((c.lastGameAt&&c.lastGameAt[g.id])||0))); }
+/* can this cat play this game right now? says why not */
+function gameCheck(c,g,quiet){
+  const no=m=>{ if(!quiet) toast(m); return false; };
+  if(!c||c.away) return false;
+  if(c.sleeping) return no(`${c.name} is fast asleep 😴`);
+  if(isBreeding(c)) return no(breedStatus());
+  const left=gameRest(c,g); if(left>0) return no(`${g.n} is resting — ready in ${Math.ceil(left/60000)} min`);
+  if(c.energy<(g.minEnergy||0)) return no(`${c.name} is too tired for ${g.n} — try Purr Rhythm or a nap`);
+  return true;
+}
+/* what this cat wants to play, and why */
+function recommendGame(c){
+  const ok=MINIGAMES.filter(g=>gameCheck(c,g,true)); if(!ok.length) return null;
+  const has=id=>ok.find(g=>g.id===id);
+  const learn=TRICKS.find(t=>!(c.tricks||[]).includes(t.id)&&c.bond>=t.bond);
+  if(learn){ const g=ok.find(x=>x.trick===learn.id); if(g) return {g,why:`Win it to teach ${c.name} ${learn.n} ${learn.emoji}`}; }
+  if(c.energy<35&&has("purr")) return {g:has("purr"),why:`${c.name} is tired — a calm session restores energy`};
+  if(c.tummy<40&&has("fishing")) return {g:has("fishing"),why:`Hungry — bring home a fish for dinner`};
+  const t=traitOf(c);
+  if(["naughty","scratchy","athletic"].includes(t)&&has("laser")) return {g:has("laser"),why:`${TRAITS[t].label} — burn off those zoomies`};
+  if(stageIndex(c)===0&&has("yarn")) return {g:has("yarn"),why:`Kittens grow faster with puzzle play`};
+  if(has(c.favGame)) return {g:has(c.favGame),why:`It's ${c.name}'s favourite`};
+  return {g:ok[0],why:`Up for anything`};
+}
+/* the one way into a game: room games on the stage, outings on their own screen */
+function playGame(id,c){
+  const g=gameById(id); c=c||selectedCat();
+  if(!g||!gameCheck(c,g)) return;
+  closeSheet();
+  if(g.where==="room") Play.start(g,c); else MG.start(id,c);
+}
+/* what a round pays, for either kind of game */
+function awardGame(c,g,win,score,goal){
+  const fav=c.favGame===g.id, ath=traitOf(c)==="athletic", out={coins:0,bond:0,lines:[]};
+  if(win){
+    c.lastGameAt=c.lastGameAt||{}; c.lastGameAt[g.id]=now();   // only a win rests the game
+    state.stats.games++; questEvent("gameWin",{cat:c.id,game:g.id});
+    out.coins=Math.round((10+goal*1.6)*(fav?1.6:1)*(ath?1.4:1));
+    out.bond=BOND_PER_GAME*(fav?1.5:1)*(g.id==="feather"?1.4:1);
+    earnCoins(out.coins,true);
+    c.mood=clamp(c.mood+(fav?16:11)*MOOD_GAIN_SCALE*1.6);
+    c.bond=clamp(c.bond+out.bond);
+    c.energy=clamp(c.energy+(g.energy!==undefined?g.energy:-6));
+    if(!c.sick) c.growth+=g.growth||8;
+    if(g.id==="laser"){ c.settledUntil=Math.max(c.settledUntil||0,now()+10*60000); out.lines.push("tuckered out — on best behaviour for 10 min"); }
+    if(g.id==="feather") out.lines.push("played together — extra bond");
+    if(g.id==="fishing"){ state.pantry=state.pantry||{}; state.pantry.fish=(state.pantry.fish||0)+1; out.lines.push("brought home a fish 🐟 — a free meal"); }
+    if(g.id==="yarn") out.lines.push(c.sick?"puzzle play (no growth while unwell)":"puzzle play — a growth boost");
+    if(g.id==="purr") out.lines.push("purred themselves calm — energy up");
+    if(fav) out.lines.push("their favourite!");
+    if(ath) out.lines.push("Athletic bonus ×1.4");
+    Audio.sfx("fanfare"); confettiRain(90);
+    checkTrickUnlock(c,g.id);
+  } else {
+    out.coins=Math.round(score*1.2); if(out.coins) earnCoins(out.coins,true);
+    c.mood=clamp(c.mood+3*MOOD_GAIN_SCALE); c.bond=clamp(c.bond+0.4); out.bond=0.4;
+    if(g.id==="purr") c.energy=clamp(c.energy+4);
+    Audio.sfx("fail");
+  }
+  touchStreak(); checkAchievements(); renderAll(); saveGame();
+  return out;
+}
 /* a cat's favourite game, repaired if the saved id is stale */
 function favGameOf(c){
   let g=MINIGAMES.find(x=>x.id===c.favGame);
@@ -4794,7 +4883,7 @@ const MG={
        panel — squashed text and tall maze cells on phones, blurry on
        desktop. Measured open, the game draws at the panel's real size.
        The title and blurb go in first: a long blurb wraps and shrinks it. */
-    document.getElementById("mgTitle").textContent=`${def.emoji} ${def.n}`;
+    document.getElementById("mgTitle").textContent=def.id==="homeward"?`${def.emoji} ${def.n}`:`${def.emoji} ${def.n} with ${c.name}`;
     document.getElementById("mgSub").textContent=def.d;
     document.getElementById("mgOver").classList.remove("show");
     document.getElementById("mg").classList.add("open");
@@ -4804,6 +4893,10 @@ const MG={
     cv.width=w*dpr; cv.height=h*dpr;
     this.ctx=cv.getContext("2d"); this.ctx.setTransform(dpr,0,0,dpr,0,0);
     this.W=w; this.H=h;
+    this.kx=Math.max(1,w/320); this.ky=Math.max(1,h/240); this.k=Math.min(this.kx,this.ky);
+    // the cat comes along: its own drawing, used by the outing scenes
+    this.catImg=null;
+    try{ const img=new Image(); img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(buildCatSVG(c)); this.catImg=img; }catch(e){}
     this.g=MG_BUILD[id](this,diff);
     document.getElementById("mgAction").textContent="Go!";
     document.getElementById("mgAction").disabled=false;
@@ -4851,43 +4944,24 @@ const MG={
     }
   },
   hit(n){ this.score+=(n||1); Audio.sfx("pop"); },
+  drawCat(g,x,foot,h,flip){
+    const img=this.catImg; if(!img||!img.complete||!img.naturalWidth) return;
+    const w=h*200/180; g.save(); g.translate(x,foot); if(flip) g.scale(-1,1);
+    g.drawImage(img,-w/2,-h,w,h); g.restore();
+  },
   miss(){ Audio.sfx("fail"); this.timeLeft=Math.max(0.1,this.timeLeft-1.2); },
   finish(win){
     this.running=false; cancelAnimationFrame(this.raf);
     const c=this.cat, def=this.cur;
     if(def.id==="homeward"){ this.finishHomeward(win); return; }
-    c.lastGameAt=c.lastGameAt||{};
-    c.lastGameAt[def.id]=now();
-    const fav=c.favGame===def.id;
-    let coins=0, moodUp=0, bondUp=0;
-    if(win){
-      state.stats.games++; questEvent("gameWin",{cat:c.id,game:def.id});
-      coins=Math.round((10+this.goal*1.6)*(fav?1.6:1));
-      moodUp=(fav?16:11)*MOOD_GAIN_SCALE*1.6;
-      bondUp=BOND_PER_GAME*(fav?1.5:1);
-      earnCoins(coins,true);
-      c.mood=clamp(c.mood+moodUp);
-      c.bond=clamp(c.bond+bondUp);
-      c.energy=clamp(c.energy-6);
-      if(!c.sick) c.growth+=8;
-      Audio.sfx("fanfare"); confettiRain(90);
-      checkTrickUnlock(c,def.id);
-    } else {
-      coins=Math.round(this.score*1.2);
-      if(coins) earnCoins(coins,true);
-      c.mood=clamp(c.mood+3*MOOD_GAIN_SCALE);
-      c.bond=clamp(c.bond+0.4);
-      Audio.sfx("fail");
-    }
-    const ov=document.getElementById("mgOver");
+    const r=awardGame(c,def,win,this.score,this.goal);
     document.getElementById("mgOverT").textContent=win?"Ripper! 🎉":"Good try 🐾";
     document.getElementById("mgOverS").innerHTML=win
-      ? `${esc(c.name)} loved that${fav?" — it's their favourite!":""}<br>+${coins} coins · +${bondUp.toFixed(1)} bond`
-      : `Got ${this.score} of ${this.goal}.<br>${coins?`+${coins} coins for the effort.`:"Have another go in a bit."}`;
-    ov.classList.add("show");
+      ? `${esc(c.name)} loved that!<br>+${r.coins} coins · +${r.bond.toFixed(1)} bond${r.lines.length?`<br>${r.lines.map(esc).join(" · ")}`:""}`
+      : `Got ${this.score} of ${this.goal}.<br>${r.coins?`+${r.coins} coins for the effort. `:""}Have another go!`;
+    document.getElementById("mgOver").classList.add("show");
     document.getElementById("mgAction").disabled=false;
-    document.getElementById("mgAction").textContent="Play again";
-    touchStreak(); checkAchievements(); renderAll(); saveGame();
+    document.getElementById("mgAction").textContent=win?"Done":"Try again";
   },
   /* winning brings the cat straight home with enough tummy/energy to be
      safe again; losing just means the trail's gone cold for now — no
@@ -4924,36 +4998,9 @@ const MG={
   }
 };
 const MG_BUILD={
-  /* tap the feather; it drifts on a wandering path and jumps when hit */
-  feather(M,diff){
-    const sp=[110,165,225][diff];
-    let x=M.W/2, y=M.H/2, a=Math.random()*6.28, trail=[];
-    return {
-      update(dt){
-        a+=rnd(-2.2,2.2)*dt*2;
-        x+=Math.cos(a)*sp*dt; y+=Math.sin(a)*sp*dt*0.8;
-        if(x<26||x>M.W-26){ a=Math.PI-a; x=clamp(x,26,M.W-26); }
-        if(y<50||y>M.H-26){ a=-a; y=clamp(y,50,M.H-26); }
-        trail.push([x,y]); if(trail.length>14) trail.shift();
-      },
-      draw(g){
-        g.strokeStyle="rgba(240,180,120,.35)"; g.lineWidth=3; g.beginPath();
-        trail.forEach(([tx,ty],i)=>i?g.lineTo(tx,ty):g.moveTo(tx,ty)); g.stroke();
-        g.save(); g.translate(x,y); g.rotate(a);
-        g.fillStyle="#F0A03D"; g.beginPath(); g.ellipse(0,0,20,9,0,0,6.283); g.fill();
-        g.fillStyle="#FFE3B8"; g.beginPath(); g.ellipse(4,0,12,5,0,0,6.283); g.fill();
-        g.strokeStyle="#B9773A"; g.lineWidth=2; g.beginPath(); g.moveTo(-20,0); g.lineTo(-32,4); g.stroke();
-        g.restore();
-      },
-      down(px,py){
-        if(Math.hypot(px-x,py-y)<32){ M.hit(); x=rnd(30,M.W-30); y=rnd(55,M.H-30); a=Math.random()*6.28; trail=[]; }
-        else M.miss();
-      }
-    };
-  },
   /* steer a rolling yarn ball down through gaps in the walls */
   yarn(M,diff){
-    const gap=[110,86,68][diff], speed=[95,130,170][diff];
+    const gap=[110,86,68][diff]*M.kx, speed=[95,130,170][diff]*M.ky, R=17*M.k;
     let bx=M.W/2, walls=[], spawn=0, rot=0;
     return {
       update(dt){
@@ -4971,14 +5018,14 @@ const MG_BUILD={
       draw(g){
         for(const w of walls){
           g.fillStyle="#C9A88A";
-          g.fillRect(0,w.y,w.gx-gap/2,16);
-          g.fillRect(w.gx+gap/2,w.y,M.W-(w.gx+gap/2),16);
+          g.fillRect(0,w.y,w.gx-gap/2,16*M.k);
+          g.fillRect(w.gx+gap/2,w.y,M.W-(w.gx+gap/2),16*M.k);
         }
         const by=M.H-40;
         g.save(); g.translate(bx,by); g.rotate(rot);
-        g.fillStyle="#F38BA6"; g.beginPath(); g.arc(0,0,17,0,6.283); g.fill();
-        g.strokeStyle="#C96B85"; g.lineWidth=2;
-        for(let i=0;i<3;i++){ g.beginPath(); g.ellipse(0,0,17,7+i*4,i*1.1,0,6.283); g.stroke(); }
+        g.fillStyle="#F38BA6"; g.beginPath(); g.arc(0,0,R,0,6.283); g.fill();
+        g.strokeStyle="#C96B85"; g.lineWidth=2*M.k;
+        for(let i=0;i<3;i++){ g.beginPath(); g.ellipse(0,0,R,(7+i*4)*M.k,i*1.1,0,6.283); g.stroke(); }
         g.restore();
       },
       move(px){ bx=clamp(px,20,M.W-20); },
@@ -4987,7 +5034,7 @@ const MG_BUILD={
   },
   /* timing bar — stop the marker in the blue band */
   fishing(M,diff){
-    const band=[64,46,32][diff], speed=[210,280,360][diff];
+    const band=[64,46,32][diff]*M.kx, speed=[210,280,360][diff]*M.kx, k=M.k;
     let x=20, dir=1, zone=rnd(40,M.W-40-band), flash=0, fish=[];
     return {
       update(dt){
@@ -4999,15 +5046,17 @@ const MG_BUILD={
       },
       draw(g,W,H){
         g.fillStyle="#BFE3F2"; g.fillRect(0,H*0.42,W,H*0.58);
+        g.fillStyle="#C9B8A4"; g.beginPath(); g.ellipse(W*0.2,H*0.43,W*0.2,14*k,0,0,6.283); g.fill();   // a rock to sit on
+        M.drawCat(g,W*0.2,H*0.43,Math.min(96*k,H*0.2),false);
         for(let i=0;i<4;i++){ g.fillStyle="rgba(255,255,255,.28)";
           g.fillRect(0,H*0.46+i*16+Math.sin(performance.now()/600+i)*3,W,4); }
-        for(const f of fish){ g.globalAlpha=f.a; g.font="26px serif"; g.textAlign="center"; g.fillText("🐟",f.x,f.y); g.globalAlpha=1; }
+        for(const f of fish){ g.globalAlpha=f.a; g.font=`${26*k}px serif`; g.textAlign="center"; g.fillText("🐟",f.x,f.y); g.globalAlpha=1; }
         const by=H*0.24;
-        g.fillStyle="rgba(63,49,40,.12)"; g.fillRect(14,by,W-28,26);
-        g.fillStyle=flash>0?"#6FCF97":"#5FA8D3"; g.fillRect(zone,by,band,26);
-        g.fillStyle="#3F3128"; g.fillRect(x-3,by-8,6,42);
-        g.textAlign="center"; g.font="800 12px Nunito, sans-serif"; g.fillStyle="rgba(63,49,40,.7)";
-        g.fillText("tap in the blue",W/2,by+58);
+        g.fillStyle="rgba(63,49,40,.12)"; g.fillRect(14,by,W-28,26*k);
+        g.fillStyle=flash>0?"#6FCF97":"#5FA8D3"; g.fillRect(zone,by,band,26*k);
+        g.fillStyle="#3F3128"; g.fillRect(x-3*k,by-8*k,6*k,42*k);
+        g.textAlign="center"; g.font=`800 ${12*k}px Nunito, sans-serif`; g.fillStyle="rgba(63,49,40,.7)";
+        g.fillText("tap in the blue",W/2,by+58*k);
       },
       down(){
         if(x>=zone&&x<=zone+band){ M.hit(); flash=0.3; Audio.sfx("splash");
@@ -5016,46 +5065,30 @@ const MG_BUILD={
       }
     };
   },
-  /* pounce on the dot before it moves on */
-  laser(M,diff){
-    const life=[1.15,0.85,0.62][diff];
-    let x=M.W/2,y=M.H/2,t=life,r=20,pulse=0;
-    const move=()=>{ x=rnd(30,M.W-30); y=rnd(56,M.H-30); t=life; pulse=1; };
-    return {
-      update(dt){ t-=dt; pulse=Math.max(0,pulse-dt*3); if(t<=0){ M.miss(); move(); } },
-      draw(g){
-        g.fillStyle="rgba(230,70,70,.18)"; g.beginPath(); g.arc(x,y,r+10+pulse*14,0,6.283); g.fill();
-        g.fillStyle="#E24A4A"; g.beginPath(); g.arc(x,y,r,0,6.283); g.fill();
-        g.fillStyle="rgba(255,255,255,.6)"; g.beginPath(); g.arc(x-5,y-5,5,0,6.283); g.fill();
-        g.strokeStyle="rgba(226,74,74,.5)"; g.lineWidth=3; g.beginPath();
-        g.arc(x,y,r+6,-1.57,-1.57+6.283*(t/life)); g.stroke();
-      },
-      down(px,py){ if(Math.hypot(px-x,py-y)<r+14){ M.hit(); move(); } else M.miss(); }
-    };
-  },
   /* notes fall to the line — tap as each one lands */
   purr(M,diff){
-    const speed=[140,185,235][diff], every=[0.85,0.7,0.55][diff];
+    const speed=[140,185,235][diff]*M.ky, every=[0.85,0.7,0.55][diff], k=M.k, win=34*M.ky;
     let notes=[], spawn=0.4;
-    const LINE=()=>M.H-52;
+    const LINE=()=>M.H-52*M.ky;
     return {
       update(dt){
         spawn-=dt;
         if(spawn<=0){ spawn=every; notes.push({x:rnd(40,M.W-40),y:-16,hit:false}); }
         for(const n of notes){
           n.y+=speed*dt;
-          if(!n.hit&&n.y>LINE()+34){ n.hit="miss"; M.miss(); }
+          if(!n.hit&&n.y>LINE()+win){ n.hit="miss"; M.miss(); }
         }
         notes=notes.filter(n=>n.y<M.H+40);
       },
       draw(g,W,H){
         const L=LINE();
+        const room=H-L-26*k; if(room>40) M.drawCat(g,W/2,H-8,Math.min(120,room),false);
         g.strokeStyle="rgba(163,120,209,.55)"; g.lineWidth=4;
         g.beginPath(); g.moveTo(0,L); g.lineTo(W,L); g.stroke();
-        g.fillStyle="rgba(163,120,209,.14)"; g.fillRect(0,L-22,W,44);
+        g.fillStyle="rgba(163,120,209,.14)"; g.fillRect(0,L-22*k,W,44*k);
         for(const n of notes){
           g.globalAlpha=n.hit==="miss"?0.25:1;
-          g.font="28px serif"; g.textAlign="center";
+          g.font=`${28*k}px serif`; g.textAlign="center";
           g.fillText(n.hit===true?"💗":"🎵",n.x,n.y);
           g.globalAlpha=1;
         }
@@ -5064,7 +5097,7 @@ const MG_BUILD={
         const L=LINE();
         let best=null,bd=1e9;
         for(const n of notes){ if(n.hit) continue; const d=Math.abs(n.y-L); if(d<bd){ bd=d; best=n; } }
-        if(best&&bd<34){ best.hit=true; M.hit(); Audio.sfx("combo",1.1+Math.random()*0.3); }
+        if(best&&bd<win){ best.hit=true; M.hit(); Audio.sfx("combo",1.1+Math.random()*0.3); }
         else M.miss();
       }
     };
@@ -5177,12 +5210,230 @@ function bindMinigame(){
   document.getElementById("mgAction").addEventListener("click",()=>{
     if(document.getElementById("mgOver").classList.contains("show")){
       if(MG.cur.id==="homeward"&&!(MG.cat&&MG.cat.away)) MG.close();
+      else if(MG.cur.id!=="homeward"&&gameRest(MG.cat,MG.cur)>0) MG.close();   // won: it's resting now
       else MG.start(MG.cur.id,MG.cat);
     }
     else MG.go();
   });
   document.getElementById("mgQuit").addEventListener("click",()=>MG.close());
   document.getElementById("mgClose").addEventListener("click",()=>MG.close());
+}
+
+/* ═══════════════════════ IN-ROOM GAMES ═══════════════════════
+   Laser Dash and Feather Chase happen in the room itself, with the real
+   cat: it runs across your actual floor after the dot, or leaps for the
+   feather where it stands. Everyone else in the room stops to watch. The
+   game drives the cat directly (c.gameCtl), and draws the dot, feather
+   and score on an overlay canvas in the stage's UI layer.              */
+const Play={
+  on:false, def:null, cat:null, g:null, score:0, goal:0, time:0, hint:"", ending:0, result:null, watchers:[],
+  start(def,c){
+    if(this.on) this.quit();
+    focusCat(c);
+    this.def=def; this.cat=c; this.on=true; this.score=0; this.ending=0; this.result=null; this.hint="";
+    this.goal=def.room.goal[stageIndex(c)];
+    if(c.pepped){ this.goal=Math.max(1,Math.ceil(this.goal*0.75)); c.pepped=false; toast(`${c.name} is pepped up — this round's easier 🖐️`); }
+    this.time=def.room.time;
+    const cv=document.getElementById("playCv"); cv.style.display="block"; this.cv=cv; this.resize();
+    document.getElementById("playQuit").style.display="block";
+    c.gameCtl=true; c.sleeping=false; c.behavior="game"; c.hop=0; c.lift=0; c.freezeUntil=0;
+    this.watchers=catsIn(c.roomId).filter(o=>o!==c);
+    for(const o of this.watchers){ o.freezeUntil=now()+10*60000; if(!o.sleeping){ o.face=o.x<c.x?1:-1; o._sig=null; } }
+    this.g=ROOM_GAMES[def.id](this,c,stageIndex(c));
+    Audio.sfx("whoosh"); emote(def.room.intro);
+    syncSprites();
+  },
+  resize(){
+    if(!this.cv) return;
+    const dpr=Math.min(2,devicePixelRatio||1), w=View.w, h=View.h;
+    this.cv.width=Math.round(w*dpr); this.cv.height=Math.round(h*dpr);
+    this.ctx=this.cv.getContext("2d"); this.ctx.setTransform(dpr,0,0,dpr,0,0);
+  },
+  hit(){ this.score++; },
+  frame(dt){
+    if(!this.on) return;
+    if(this.result){ this.result.t-=dt; this.draw(); if(this.result.t<=0) this.stop(); return; }
+    if(this.ending){ this.ending-=dt; if(this.ending<=0) this.finish(); }
+    else {
+      this.time-=dt; this.g.update(dt);
+      if(this.score>=this.goal) this.end(true); else if(this.time<=0) this.end(false);
+    }
+    View.camTarget=clamp(this.cat.x*View.worldW-View.w/2,0,View.maxCam());
+    this.draw();
+  },
+  end(win){
+    this.won=win; this.ending=0.9; this.hint="";
+    const c=this.cat; c.hop=0; c.lift=0;
+    spriteAnim(c,win?"happy":"love",900);
+  },
+  finish(){
+    const c=this.cat, def=this.def, win=this.won;
+    const r=awardGame(c,def,win,this.score,this.goal);
+    this.result={t:2.8, title:win?`Ripper! 🎉 ${c.name} loved that`:`Good try 🐾 ${this.score} of ${this.goal}`,
+      line:win?`+${r.coins} coins · +${r.bond.toFixed(1)} bond${r.lines.length?" · "+r.lines.join(" · "):""}`:(r.coins?`+${r.coins} coins for the effort — have another go!`:"Have another go!")};
+    document.getElementById("playQuit").style.display="none";
+  },
+  stop(){
+    const c=this.cat;
+    this.on=false; this.g=null; this.result=null;
+    if(this.cv){ this.cv.style.display="none"; this.ctx.clearRect(0,0,View.w,View.h); }
+    document.getElementById("playQuit").style.display="none";
+    if(c){ c.gameCtl=false; c.lift=0; c.hop=0; c.behavior="idle"; c.behaviorUntil=now()+3000; c.tx=c.x; c.ty=c.y; c._sig=null; }
+    for(const o of this.watchers) o.freezeUntil=0;
+    this.watchers=[];
+    syncSprites(); renderAll();
+  },
+  quit(){
+    if(!this.on) return;
+    if(this.result) return this.stop();
+    if(this.ending) return this.finish();          // the round's already over: skip to the results
+    const c=this.cat; this.stop(); if(c) emote(`${c.name} wanders off to find something else to do`);
+  },
+  local(e){ const r=this.cv.getBoundingClientRect(); return [e.clientX-r.left, e.clientY-r.top]; },
+  draw(){
+    const g=this.ctx, W=View.w; if(!g) return;
+    g.clearRect(0,0,W,View.h);
+    if(this.g&&!this.result) this.g.draw(g);
+    // score & time, top centre
+    const txt=this.result?"":`${this.def.emoji} ${this.score} / ${this.goal}   ⏱ ${Math.max(0,Math.ceil(this.time))}s`;
+    g.textAlign="center"; g.textBaseline="middle";
+    if(txt){
+      g.font="800 14px Nunito, system-ui, sans-serif";
+      const w=g.measureText(txt).width+28, x=W/2, y=22;
+      g.fillStyle="rgba(255,253,248,.95)"; roundRect(g,x-w/2,y-15,w,30,15); g.fill();
+      g.fillStyle="#3F3128"; g.fillText(txt,x,y+1);
+      g.fillStyle="rgba(63,49,40,.12)"; g.fillRect(x-w/2+14,y+11,w-28,3);
+      g.fillStyle="#6FCF97"; g.fillRect(x-w/2+14,y+11,(w-28)*clamp(this.score/this.goal,0,1),3);
+      if(this.hint){ g.font="800 12px Nunito, system-ui, sans-serif"; g.fillStyle="rgba(63,49,40,.75)"; g.fillText(this.hint,x,y+32); }
+    }
+    if(this.result){
+      g.font="800 16px Nunito, system-ui, sans-serif";
+      const a=Math.min(1,this.result.t*2), w=Math.min(W-24,Math.max(g.measureText(this.result.title).width,g.measureText(this.result.line).width*0.8)+40);
+      g.globalAlpha=a; g.fillStyle="rgba(255,253,248,.97)"; roundRect(g,W/2-w/2,View.h*0.30-34,w,72,18); g.fill();
+      g.fillStyle="#3F3128"; g.fillText(this.result.title,W/2,View.h*0.30-10);
+      g.font="700 12px Nunito, system-ui, sans-serif"; g.fillStyle="rgba(63,49,40,.8)";
+      wrapText(g,this.result.line,W/2,View.h*0.30+14,w-24,15);
+      g.globalAlpha=1;
+    }
+    g.textBaseline="alphabetic";
+  }
+};
+function roundRect(g,x,y,w,h,r){ g.beginPath(); g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r); g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath(); }
+function wrapText(g,text,x,y,maxW,lh){
+  const words=text.split(" "); let line="", yy=y;
+  for(const w of words){ const t=line?line+" "+w:w; if(g.measureText(t).width>maxW&&line){ g.fillText(line,x,yy); line=w; yy+=lh; } else line=t; }
+  if(line) g.fillText(line,x,yy);
+}
+/* cat geometry on screen (matches positionSprites) */
+function catScreen(c){
+  const si=stageIndex(c), px=STAGES[si].px, depth=(c.y-CAT_BAND[0])/(CAT_BAND[1]-CAT_BAND[0]), sc=0.80+depth*0.26;
+  const x=c.x*View.worldW-View.camX, foot=c.y*View.h;
+  return {x, foot, top:foot-px*sc*0.9, h:px*sc};
+}
+const ROOM_GAMES={
+  /* drag the dot around the floor; the cat chases, crouches, pounces */
+  laser(P,c,diff){
+    const ath=traitOf(c)==="athletic";
+    const speed=(230+diff*25)*(ath?1.3:1)*(0.6+0.4*c.energy/100);     // px per second
+    const dot={x:clamp(c.x+(c.face||1)*0.18,0.05,0.95), y:clamp(c.y,CAT_BAND[0],CAT_BAND[1])};
+    let held=false, moved=false, crouch=0, pounce=0, last=null, trail=[];
+    const toWorld=(sx,sy)=>{ dot.x=clamp((sx+View.camX)/View.worldW,0.03,0.97); dot.y=clamp(sy/View.h,CAT_BAND[0],CAT_BAND[1]); moved=true; };
+    return {
+      update(dt){
+        const ww=View.worldW, H=View.h;
+        const cx=c.x*ww, cy=c.y*H, dx=dot.x*ww, dy=dot.y*H, d=Math.hypot(dx-cx,dy-cy);
+        trail.push([dx,dy]); if(trail.length>10) trail.shift();
+        if(pounce>0){ pounce-=dt; c.lift=Math.sin(Math.max(0,pounce)/0.36*Math.PI)*18; c.hop=0; return; }
+        c.lift=0;
+        if(!moved){ P.hint="Drag the red dot — your cat will chase it"; }
+        if(last&&Math.hypot(dx-last[0],dy-last[1])<80){ if(d<40){ P.hint="Now move it — keep it moving!"; c.hop=0; return; } }
+        else if(moved) P.hint="";
+        if(d<34){
+          crouch+=dt; c.hop=0;
+          if(crouch>0.3){ crouch=0; pounce=0.36; last=[dx,dy]; P.hit(); spriteAnim(c,"play",420); Audio.sfx("pop");
+            burst("play",dx-View.camX,dy-6,{n:8,shape:"spark",colours:[[1,.35,.35],[1,.8,.6]],spMax:110,lifeMax:0.7}); }
+          return;
+        }
+        crouch=0;
+        const step=Math.min(d,speed*dt);
+        c.x=clamp(c.x+(dx-cx)/d*step/ww,0.02,0.98);
+        c.y=clamp(c.y+(dy-cy)/d*step/H,CAT_BAND[0],CAT_BAND[1]);
+        const f=dx<cx?-1:1; if(f!==c.face&&Math.abs(dx-cx)>6){ c.face=f; c._sig=null; syncSprites(); }
+        c.hop=(c.hop||0)+dt*16;
+      },
+      draw(g){
+        const ox=View.camX;
+        g.strokeStyle="rgba(226,74,74,.25)"; g.lineWidth=4; g.lineCap="round"; g.beginPath();
+        trail.forEach(([x,y],i)=>i?g.lineTo(x-ox,y):g.moveTo(x-ox,y)); g.stroke();
+        const x=dot.x*View.worldW-ox, y=dot.y*View.h, pulse=0.5+0.5*Math.sin(performance.now()/90);
+        g.fillStyle=`rgba(255,60,60,${0.18+pulse*0.12})`; g.beginPath(); g.arc(x,y,16+pulse*4,0,6.283); g.fill();
+        g.fillStyle="#FF3B3B"; g.beginPath(); g.arc(x,y,6,0,6.283); g.fill();
+        g.fillStyle="rgba(255,255,255,.8)"; g.beginPath(); g.arc(x-1.5,y-1.5,2,0,6.283); g.fill();
+      },
+      down(x,y){ held=true; toWorld(x,y); }, move(x,y){ if(held) toWorld(x,y); }, up(){ held=false; }
+    };
+  },
+  /* the feather swings on its string; tap to leap as it swoops past */
+  feather(P,c,diff){
+    const ath=traitOf(c)==="athletic";
+    const reach=(40+diff*2)*(ath?1.2:1), liftMax=70*(ath?1.2:1), LEAP=0.6;
+    let omega=[1.8,2.1,2.4][diff], t=Math.random()*3, leap=-1, caught=false, rest=0, walkTo=null, fly=0;
+    let pivot=c.x;                                     // world x the wand hangs over
+    const feather=()=>{ const s=catScreen(c), px=pivot*View.worldW-View.camX, L=Math.max(40,s.top-55-4);
+      const th=0.9*Math.sin(omega*t); return {x:px+L*Math.sin(th), y:4+L*Math.cos(th)-fly*120, th, px}; };
+    return {
+      update(dt){
+        t+=dt; fly=Math.max(0,fly-dt*2.2);
+        if(walkTo!==null){
+          const d=walkTo-c.x, step=Math.sign(d)*Math.min(Math.abs(d),(0.28/Math.max(1,View.worldW/View.w))*dt);
+          c.x+=step; c.hop=(c.hop||0)+dt*14;
+          const f=d<0?-1:1; if(f!==c.face){ c.face=f; c._sig=null; syncSprites(); }
+          if(Math.abs(d)<0.004){ c.x=walkTo; walkTo=null; c.hop=0; }
+          P.hint=""; return;
+        }
+        if(leap>=0){
+          leap+=dt; c.lift=Math.sin(Math.min(1,leap/LEAP)*Math.PI)*liftMax;
+          const F=feather(), s=catScreen(c);
+          if(!caught&&c.lift>liftMax*0.45&&Math.hypot(F.x-s.x,F.y-(s.top-c.lift))<reach){
+            caught=true; P.hit(); Audio.sfx("pop"); fly=1; spriteAnim(c,"happy",500);
+            burst("play",F.x,F.y,{n:10,shape:"star",colours:[[1,.85,.5],[1,.7,.4]],spMax:120,lifeMax:0.8});
+          }
+          if(leap>=LEAP){
+            leap=-1; c.lift=0;
+            if(caught){ omega*=1.08; pivot=clamp(c.x+rnd(0.12,0.22)*(Math.random()<0.5?-1:1),0.08,0.92); walkTo=pivot; }
+            else rest=0.25;
+          }
+          return;
+        }
+        rest=Math.max(0,rest-dt);
+        P.hint=P.score?"":"Tap to leap as the feather swoops low";
+      },
+      draw(g){
+        const F=feather();
+        g.strokeStyle="#9A6B3E"; g.lineWidth=5; g.lineCap="round";
+        g.beginPath(); g.moveTo(F.px+46,-6); g.lineTo(F.px,4); g.stroke();                // the wand
+        g.strokeStyle="rgba(90,70,54,.55)"; g.lineWidth=1.5;
+        g.beginPath(); g.moveTo(F.px,4); g.lineTo(F.x,F.y); g.stroke();                   // its string
+        g.save(); g.translate(F.x,F.y); g.rotate(-F.th+Math.PI/2+Math.sin(t*7)*0.15);
+        g.fillStyle="#F0A03D"; g.beginPath(); g.ellipse(0,10,8,18,0,0,6.283); g.fill();
+        g.fillStyle="#FFE3B8"; g.beginPath(); g.ellipse(0,12,4,12,0,0,6.283); g.fill();
+        g.strokeStyle="#B9773A"; g.lineWidth=2; g.beginPath(); g.moveTo(0,-8); g.lineTo(0,28); g.stroke();
+        g.restore();
+      },
+      down(){ if(leap<0&&walkTo===null&&rest<=0){ leap=0; caught=false; c.hop=0; Audio.sfx("whoosh"); } }
+    };
+  }
+};
+function bindPlay(){
+  const cv=document.getElementById("playCv");
+  cv.addEventListener("pointerdown",e=>{ if(!Play.on||!Play.g||Play.ending||Play.result) return; e.preventDefault();
+    try{ cv.setPointerCapture(e.pointerId); }catch(_){}
+    const [x,y]=Play.local(e); Play.g.down&&Play.g.down(x,y); });
+  cv.addEventListener("pointermove",e=>{ if(!Play.on||!Play.g) return; const [x,y]=Play.local(e); Play.g.move&&Play.g.move(x,y); });
+  const up=()=>{ if(Play.on&&Play.g&&Play.g.up) Play.g.up(); };
+  cv.addEventListener("pointerup",up); cv.addEventListener("pointercancel",up);
+  document.getElementById("playQuit").addEventListener("click",()=>Play.quit());
+  addEventListener("resize",()=>{ if(Play.on) Play.resize(); });
 }
 
 /* ═══════════════════════ 28. PHOTO MODE ═══════════════════════ */
@@ -5357,7 +5608,7 @@ async function init(){
   Audio.musicVol=state.settings.musicVol; Audio.sfxVol=state.settings.sfxVol;
   Audio.realOn=state.settings.realMusic;
 
-  bindUI(); bindStage(); bindMinigame();
+  bindUI(); bindStage(); bindMinigame(); bindPlay();
   applyTheme();
   syncSprites();
   renderAll();
