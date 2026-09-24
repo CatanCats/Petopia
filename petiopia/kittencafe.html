@@ -1939,13 +1939,22 @@ const ROOM_KINDS={
   grand:  {label:"Grand Hall", cap:10, cost:1400},
 };
 for(const k in ROOM_KINDS) ROOM_KINDS[k].width=roomWidthFor(ROOM_KINDS[k].cap);
+/* Every trick has a job, and rests between uses so it's a choice, not a
+   button to mash. Each is learnt from one game (MINIGAMES[].trick): build
+   the bond, then win that game together. */
 const TRICKS=[
-  {id:"sit",   n:"Sit",       emoji:"🪑", bond:20, anim:"trickSit",   learn:"feather"},
-  {id:"high5", n:"High Five", emoji:"🖐️", bond:40, anim:"trickHigh5", learn:"fishing"},
-  {id:"roll",  n:"Roll Over", emoji:"🔄", bond:60, anim:"rollover",   learn:"yarn"},
-  {id:"speak", n:"Speak",     emoji:"🗣️", bond:80, anim:"happy",      learn:"laser"},
-  {id:"dance", n:"Dance",     emoji:"💃", bond:100,anim:"zoomies",    learn:"fishing"},
+  {id:"sit",   n:"Sit",       emoji:"🪑", bond:20, anim:"trickSit",   cd:10*60000, job:"Settle down",
+   d:"No scratching the sofa, knocking things over or missing the tray for 15 min."},
+  {id:"high5", n:"High Five", emoji:"🖐️", bond:40, anim:"trickHigh5", cd:20*60000, job:"Pep up",
+   d:"A burst of energy over 10 min, and their next game is easier."},
+  {id:"roll",  n:"Roll Over", emoji:"🔄", bond:60, anim:"rollover",   cd:30*60000, job:"Tummy time",
+   d:"Rolls over for a tummy rub, right now."},
+  {id:"speak", n:"Speak",     emoji:"🗣️", bond:80, anim:"happy",      cd:5*60000,  job:"Tell me what's wrong",
+   d:"Tells you which cat in the house needs you most, and why."},
+  {id:"dance", n:"Dance",     emoji:"💃", bond:100,anim:"zoomies",    cd:60*60000, job:"Party",
+   d:"Lifts every cat in the room for 20 min, and they all become better friends."},
 ];
+const trickGame=t=>MINIGAMES.find(g=>g.trick===t.id);
 
 /* ── tuning ─────────────────────────────────────────────────────────
    Deliberately slow. A full bar should last most of a day, and mood is
@@ -2737,13 +2746,13 @@ const Why={
   },
   bondHTML(c){
     const wb=wellbeing(c), passive=wb>78&&!c.sick;
-    const next=TRICKS.find(t=>!(c.tricks||[]).includes(t.id));
+    const next=TRICKS.find(t=>!(c.tricks||[]).includes(t.id)), ng=next&&trickGame(next);
     const rows=[
       [passive?"▲":"","Pats, tricks, toys and games together all build bond"],
       [passive?"▲":"",passive?`Growing on its own — they're really happy`:`Keep all four needs high (average over 78%) and it grows on its own · now ${Math.round(wb)}%`],
     ];
     if(traitOf(c)==="shy") rows.push(["","Shy: warms up to pats more slowly"]);
-    const nx=next?`<div class="tip">🎓 Next trick: ${esc(next.n)} ${next.emoji} at bond ${next.bond}</div>`:`<div class="tip">🎓 Knows every trick!</div>`;
+    const nx=next?`<div class="tip">🎓 Next trick: ${esc(next.n)} ${next.emoji} — bond ${next.bond}, then win ${ng?ng.n:"a game"} together</div>`:`<div class="tip">🎓 Knows every trick!</div>`;
     return `<div class="wh">Bond level ${bondLevel(c)}</div>`+rows.map(([a,t])=>`<div class="wr"><span class="wa up">${a}</span><span>${esc(t)}</span></div>`).join("")+nx;
   },
   render(){
@@ -3202,24 +3211,98 @@ function playToy(toy){
   closeSheet(); touchStreak(); checkAchievements();
   renderHUD(); syncSprites(); saveGame();
 }
-function checkTrickUnlock(c){
+/* A win at a game teaches that game's trick once the bond is there. Other
+   bond gains (pats) just point the way, once per trick. */
+function checkTrickUnlock(c,gameId){
+  c.tricks=c.tricks||[]; c.trickNudged=c.trickNudged||{};
   for(const tr of TRICKS){
-    if((c.bond||0)>=tr.bond && !(c.tricks||[]).includes(tr.id)){
-      c.tricks=c.tricks||[]; c.tricks.push(tr.id);
-      pushMsg(`${c.name} learnt a new trick: ${tr.n} ${tr.emoji}`,false);
+    if((c.bond||0)<tr.bond||c.tricks.includes(tr.id)) continue;
+    const g=trickGame(tr);
+    if(gameId&&g&&g.id===gameId){
+      c.tricks.push(tr.id);
+      pushMsg(`${c.name} learnt ${tr.n} ${tr.emoji} — ${tr.job.toLowerCase()}! Find it under Tricks.`,false);
       Audio.sfx("unlock"); confettiRain(40);
+    } else if(!gameId&&g&&!c.trickNudged[tr.id]){
+      c.trickNudged[tr.id]=true;
+      pushMsg(`🎓 ${c.name} is ready to learn ${tr.n} — win ${g.n} together to teach it`,false);
     }
   }
 }
+const settled=c=>now()<(c.settledUntil||0);
+function trickWait(c,t){ return Math.max(0,t.cd-(now()-((c.trickAt&&c.trickAt[t.id])||0))); }
+/* the neediest cat in the house, and the single thing that would help most */
+function neediest(){
+  let worst=null;
+  for(const c of state.cats){ if(c.away) continue;
+    const low=Math.min(c.tummy,c.energy,c.hygiene,c.mood);
+    const score=(c.danger>=2?-200:0)+(c.sick?-50:0)+low;
+    if(!worst||score<worst.score) worst={c,score,low};
+  }
+  if(!worst) return null;
+  const c=worst.c, room=getRoom(c.roomId);
+  const stat=c.tummy===worst.low?"tummy":c.energy===worst.low?"energy":c.hygiene===worst.low?"hygiene":"mood";
+  const need=c.danger>=2?"is fading — help now!":c.sick?"is feeling unwell"
+    :{tummy:"is hungry",energy:"is worn out",hygiene:"needs a clean",mood:"is feeling low"}[stat];
+  // the tip answers the need that's actually low, not the room's worst problem
+  const R=room?catRates(c,roomCtx(room)):null;
+  const drag=R?R[stat].filter(p=>p.v<0&&p.fix).sort((a,b)=>a.v-b.v):[];
+  const fix=c.sick?"Kitty Medicine from the Feed menu":drag[0]?drag[0].fix:null;
+  return {c,room,need,fix,fine:worst.score>55};
+}
+const TRICK_JOBS={
+  sit(c){
+    c.settledUntil=now()+15*60000;
+    if(c.behavior==="goScratch"){ c.behavior="wander"; c.behaviorUntil=0; }
+    c.buffs.push({stat:"mood",v:DECAY.mood,until:now()+15*60000,label:"Settled and praised 🪑"});
+    emote(`sits nicely 🪑 — on best behaviour for 15 min`);
+  },
+  high5(c){
+    const ticks=10*60000/TICK_MS;
+    c.buffs.push({stat:"energy",v:15/ticks,until:now()+10*60000,label:"High-fived — pepped up 🖐️"});
+    c.pepped=true;
+    emote(`high five! 🖐️ pepped up — next game's easier`);
+  },
+  roll(c){
+    if(c.sick){ toast(`${c.name} isn't up to tummy rubs while unwell`); return false; }
+    Rub.open(c);
+  },
+  speak(c){
+    const n=neediest(); if(!n) return false;
+    if(n.fine){ emote(`mrrp! everyone's doing great 💚`); pushMsg(`🗣️ ${c.name} says everyone's doing great 💚`,false); return; }
+    const who=n.c===c?"I":n.c.name, where=n.c.roomId!==c.roomId&&n.room?` (in ${n.room.name})`:"";
+    const verb=n.c===c?n.need.replace(/^is /,"am ").replace(/^needs /,"need "):n.need;
+    emote(`mrrow! ${who}${where} ${verb}`);
+    pushMsg(`🗣️ ${c.name} says ${n.c===c?"they":n.c.name+where} ${n.need}${n.fix?` · 💡 ${n.fix}`:""}`,n.c.danger>=2);
+  },
+  dance(c){
+    const here=catsIn(c.roomId).filter(x=>!x.sleeping);
+    const ticks=20*60000/TICK_MS;
+    for(const x of here){
+      x.buffs=x.buffs||[];
+      x.buffs.push({stat:"mood",v:10/ticks,until:now()+20*60000,label:`${c.name}'s dance party 💃`});
+      x.friends=x.friends||{};
+      for(const y of here) if(y!==x) x.friends[y.id]=(x.friends[y.id]||0)+1;
+      if(x!==c&&x.roomId===state.activeRoom) spriteAnim(x,"happy",1400);
+    }
+    confettiRain(70); Audio.sfx("fanfare");
+    emote(here.length>1?`dance party! 💃 ${here.length} cats joined in`:`dance party! 💃`);
+  }
+};
 function doTrick(c,trickId){
-  const tr=TRICKS.find(t=>t.id===trickId); if(!tr) return;
+  const tr=TRICKS.find(t=>t.id===trickId); if(!tr||!c) return;
   if(!(c.tricks||[]).includes(trickId)){ toast(`${c.name} hasn't learnt that yet`); return; }
   if(c.sleeping){ toast(`${c.name} is asleep 😴`); return; }
-  spriteAnim(c,tr.anim,2000); emote(`${tr.n}! ${tr.emoji}`);
-  c.mood=clamp(c.mood+2); c.bond=clamp(c.bond+0.4);
+  const wait=trickWait(c,tr);
+  if(wait>0){ toast(`${c.name} needs a rest before another ${tr.n} — ${Math.ceil(wait/60000)} min`); return; }
+  c.buffs=c.buffs||[];
+  if(TRICK_JOBS[tr.id](c)===false) return;
+  c.trickAt=c.trickAt||{}; c.trickAt[tr.id]=now();
+  if(tr.id!=="roll") spriteAnim(c,tr.anim,2000);
+  c.bond=clamp(c.bond+0.4);
   Audio.sfx("mew"); const g=earnCoins(2);
-  if(g) { bumpWallet(); fxAtCat(c,"+"+g,"#FFF3C4"); }
+  if(g){ bumpWallet(); fxAtCat(c,"+"+g,"#FFF3C4"); }
   renderHUD(); saveGame();
+  if(currentSheet==="tricks") refreshSheet();
 }
 function toggleSleep(){
   const c=selectedCat();
@@ -3531,7 +3614,7 @@ function assignBehavior(c){
   }
   // scratch — a post if there is one, otherwise your poor sofa
   const scratchChance=traitOf(c)==="scratchy"?0.55:0.40;
-  if(roll<scratchChance){
+  if(roll<scratchChance&&!(settled(c)&&!scratchSpots(r).length)){
     const ss=scratchSpots(r);
     if(ss.length){ const t=targetOf(pick(ss)); c.tx=t.tx; c.ty=t.ty; }
     else { const w=wanderSpot(); c.tx=w.tx; c.ty=w.ty; }
@@ -3554,6 +3637,7 @@ function arrive(c){
         const fill=100-litterClean(r,box.u);
         let miss=Math.min(0.35,fill/100*0.35)*0.30;
         if(accident) miss*=2;
+        if(settled(c)) miss=0;
         if(Math.random()>miss){
           setLitterClean(r,box.u,litterClean(r,box.u)-22);
           if(active){ spriteAnim(c,"squat",1100); emote("used the tray 🚽"); }
@@ -3581,7 +3665,7 @@ function arrive(c){
         const el=spriteEls[c.id];
         if(el){ const b=el.getBoundingClientRect(), s=View.stage.getBoundingClientRect();
           burst("play",b.left+b.width/2-s.left,b.top-s.top,{n:7,shape:"spark",colours:[[1,.9,.6]],lifeMax:0.9}); } }
-      if(naughty&&Math.random()<0.22&&r.poops.length<12){
+      if(naughty&&!settled(c)&&Math.random()<0.22&&r.poops.length<12){
         r.poops.push({id:uid("p"),x:c.x,y:c.y});
         if(active) emote("knocked something over! 😼");
       }
@@ -4119,10 +4203,8 @@ cat(){
   const B=BREEDS[c.breed];
   const roomOpts=state.rooms.filter(r=>r.id!==c.roomId)
     .map(r=>`<button class="mv" data-move="${c.id}|${r.id}">${esc(r.name)}</button>`).join("");
-  const tricks=TRICKS.map(t=>{
-    const has=(c.tricks||[]).includes(t.id);
-    return `<button class="mv" data-trick="${t.id}" ${has?"":"disabled"} style="${has?"":"opacity:.45"}">${t.emoji} ${t.n}${has?"":` · bond ${t.bond}`}</button>`;
-  }).join("");
+  const known=TRICKS.filter(t=>(c.tricks||[]).includes(t.id));
+  const tricks=`<button class="mv" data-opensheet="tricks">🎓 ${known.length?known.map(t=>t.emoji).join(" ")+" · ":""}${known.length}/${TRICKS.length} tricks</button>`;
   const worn=COSTUME_SLOTS.map(s=>{
     const id=c.wear&&c.wear[s];
     return id?`<button class="mv" data-unwear="${s}">${COSTUME_EMOJI[id]||"👕"} ${ITEM_BY_ID[id]?ITEM_BY_ID[id].name:s} ✕</button>`:"";
@@ -4142,6 +4224,25 @@ cat(){
     <div class="coltitle">Move to another room</div>
     <div class="movebtns">${roomOpts||`<span class="ds">Only one room so far.</span>`}</div>
     <label class="doorToggle"><input type="checkbox" id="doorChk" ${c.closeDoor?"checked":""}> Keep ${esc(c.name)} in this room</label>`};
+},
+/* ── tricks ── */
+tricks(){
+  const c=selectedCat(), trait=traitOf(c);
+  const hint={sit:["scratchy","naughty","accident"].includes(trait)?`Handy for a ${TRAITS[trait].label} cat.`:"",
+    roll:c.sick?"Not while they're unwell.":"",
+    speak:(()=>{ const n=neediest(); return n&&!n.fine&&n.c!==c?`Someone needs you…`:""; })(),
+    dance:catsIn(c.roomId).length>1?`${catsIn(c.roomId).length} cats would join in.`:"Better with company."};
+  const rows=TRICKS.map(t=>{
+    const has=(c.tricks||[]).includes(t.id), g=trickGame(t), wait=has?trickWait(c,t):0;
+    const how=has?"":(c.bond>=t.bond?`Ready to learn — win ${g?g.n:"a game"} together.`:`Learn it: bond ${t.bond} (now ${Math.floor(c.bond)}), then win ${g?g.n:"a game"} together.`);
+    const status=has&&settled(c)&&t.id==="sit"?`<br>✅ <b>On best behaviour — ${Math.ceil((c.settledUntil-now())/60000)} min left</b>`:"";
+    const btn=has?`<button class="buy use" data-trick="${t.id}" ${wait||c.sleeping?"disabled":""}>${c.sleeping?"Asleep":wait?`${Math.ceil(wait/60000)} min`:"Do it"}</button>`
+      :`<button class="buy" disabled>🔒</button>`;
+    return `<div class="item" style="${has?"":"opacity:.7"}"><div class="big">${t.emoji}</div><div class="info">
+      <div class="nm">${t.n} · <span style="font-weight:700">${t.job}</span></div>
+      <div class="ds">${t.d}${status}${has&&hint[t.id]?`<br><b>${hint[t.id]}</b>`:""}${how?`<br>${how}`:""}</div></div>${btn}</div>`;
+  }).join("");
+  return {h:`<h2>🎓 ${esc(c.name)}'s tricks</h2><p class="sub">Every trick has a job. Build your bond, then win that trick's game together to teach it.</p>`, b:rows};
 },
 /* ── main menu ── */
 menu(){
@@ -4385,6 +4486,7 @@ function bindSheet(){
   on("[data-theme]",e=>applyThemePreset(e.currentTarget.dataset.theme));
   on("[data-move]",e=>{ const [c,r]=e.currentTarget.dataset.move.split("|"); moveCat(c,r); });
   on("[data-trick]",e=>doTrick(selectedCat(),e.currentTarget.dataset.trick));
+  on("[data-opensheet]",e=>openSheet(e.currentTarget.dataset.opensheet));
   on("[data-unwear]",e=>{ const c=selectedCat(); delete c.wear[e.currentTarget.dataset.unwear];
     c._sig=null; Audio.sfx("click"); syncSprites(); saveGame(); refreshSheet(); });
   on("[data-quest]",e=>claimQuest(state.quests[+e.currentTarget.dataset.quest]));
@@ -4532,6 +4634,7 @@ const MG={
     this.cur=def; this.cat=c;
     const diff=stageIndex(c);
     this.goal=def.scale[diff];
+    if(c.pepped&&def.id!=="homeward"){ this.goal=Math.max(1,Math.ceil(this.goal*0.75)); c.pepped=false; toast(`${c.name} is pepped up — this round's easier 🖐️`); }
     this.score=0; this.timeLeft=def.time||24;
     /* Open the panel before measuring: while it's hidden the canvas is 0×0,
        which used to fall back to 320×240 and get stretched to fill the
@@ -4615,7 +4718,7 @@ const MG={
       c.energy=clamp(c.energy-6);
       if(!c.sick) c.growth+=8;
       Audio.sfx("fanfare"); confettiRain(90);
-      checkTrickUnlock(c);
+      checkTrickUnlock(c,def.id);
     } else {
       coins=Math.round(this.score*1.2);
       if(coins) earnCoins(coins,true);
