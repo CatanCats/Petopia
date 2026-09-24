@@ -92,6 +92,9 @@ input,button,textarea{font-family:inherit;color:inherit;}
 .stage.dragging{cursor:grabbing;}
 .stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;}
 #glRoom{z-index:1;}
+#wxCv{z-index:2;pointer-events:none;}
+.catSprite .catG.startle{animation:a_startle .5s ease;}
+@keyframes a_startle{0%,100%{transform:none}25%{transform:translateY(-10px) scale(1.04,.96)}55%{transform:translateY(-4px)}}
 #glFx{z-index:7;pointer-events:none;}
 .furniLayer{position:absolute;inset:0;z-index:3;pointer-events:none;}
 .furniHit{position:absolute;pointer-events:auto;touch-action:none;cursor:grab;}
@@ -506,6 +509,7 @@ input,button,textarea{font-family:inherit;color:inherit;}
 
   <div class="stage" id="stage">
     <canvas id="glRoom"></canvas>
+    <canvas id="wxCv"></canvas>
     <div class="furniLayer" id="furniLayer"></div>
     <div class="catsLayer" id="catsLayer"></div>
     <canvas id="glFx"></canvas>
@@ -1015,6 +1019,19 @@ const Audio={
     return b;
   },
   resume(){ const ac=this.ensure(); if(ac&&ac.state==="suspended") ac.resume(); },
+  /* soft rain on the windows, as a looping filtered noise under the sfx volume */
+  setRain(level){
+    const ac=this.ac; if(!ac) return;
+    if(!this.rainGain&&level>0){
+      const len=ac.sampleRate*2, b=ac.createBuffer(1,len,ac.sampleRate), d=b.getChannelData(0);
+      for(let i=0;i<len;i++) d[i]=Math.random()*2-1;
+      const src=ac.createBufferSource(); src.buffer=b; src.loop=true;
+      const f=ac.createBiquadFilter(); f.type="bandpass"; f.frequency.value=1400; f.Q.value=0.6;
+      this.rainGain=ac.createGain(); this.rainGain.gain.value=0;
+      src.connect(f); f.connect(this.rainGain); this.rainGain.connect(this.sfxGain); src.start();
+    }
+    if(this.rainGain) this.rainGain.gain.setTargetAtTime(level,ac.currentTime,1.2);
+  },
   setMusic(on){ this.musicOn=on;
     if(this.musicGain) this.musicGain.gain.value=on?this.musicVol:0;
     if(this.el) this.el.volume=on?this.musicVol:0;
@@ -1152,6 +1169,7 @@ const Audio={
     const D=detune||1;
     switch(kind){
       case "click": tone(620*D,420*D,0.07,"triangle",0.13); break;
+      case "thunder": noise(1.8,70,0.7,0.5); noise(1.1,140,0.9,0.22,0.12); break;
       case "pet": tone(520*D,760*D,0.13,"sine",0.16); tone(780*D,980*D,0.1,"sine",0.07,0.05); break;
       case "purr": for(let i=0;i<7;i++) noise(0.09,180+Math.random()*70,6,0.075,i*0.075); break;
       case "meow": tone(560*D,880*D,0.14,"sawtooth",0.09); tone(880*D,470*D,0.22,"sawtooth",0.075,0.13); break;
@@ -2186,7 +2204,7 @@ function freshState(){
     earnWindowStart:now(), earnedThisHour:0, coinCapBonus:0,
     ach:{}, quests:null, questDay:null, streak:0, lastCareDay:null,
     seen:{}, stats:{fed:0,cleaned:0,games:0,bred:0,pets:0,placed:0,spent:0,rubs:0},
-    settings:{music:true,sfx:true,musicVol:0.34,sfxVol:0.7,dayNight:true,particles:true,awayMode:true,realMusic:true},
+    settings:{music:true,sfx:true,musicVol:0.34,sfxVol:0.7,dayNight:true,particles:true,awayMode:true,realMusic:true,weather:true},
     lastSeen:now()
   };
   state=s;
@@ -2273,7 +2291,9 @@ function roomCtx(room){
     dirtyLitter:litters?avgL<25:true,
     badCouch:room.couch<45,
     socialCat:here.find(c=>traitOf(c)==="social")||null,
-    slot:daySlot(), isActive:room.id===state.activeRoom };
+    slot:daySlot(), isActive:room.id===state.activeRoom, weather:weatherNow(),
+    windows:room.placed.filter(p=>{ const it=ITEM_BY_ID[p.item]; return it&&it.shape==="window"; }).length,
+    hideout:room.placed.some(p=>{ const it=ITEM_BY_ID[p.item]; return it&&(["tunnel","catTower","hammock"].includes(it.shape)||(it.fn&&(it.fn.k==="bed"||it.fn.k==="sleep"))); }) };
 }
 /* ── STAT RATES ──────────────────────────────────────────────────────
    How far each need moves on one tick, split into named reasons. tick()
@@ -2341,7 +2361,21 @@ function catRates(c,X){
     if(traitOf(c)==="vain"&&Object.keys(c.wear||{}).length) add("mood","Vain — loves their outfit",0.25);
     if(X.slot==="night"&&fx.light===0){ add("mood","Dark room at night",-mD*0.2*f,"Place a lamp in this room"); mD*=1.2; }
   }
-  // timed effects (tricks, weather…) — each carries its own label
+  // the weather outside
+  const W=X.weather;
+  if(W==="sunny"&&X.windows&&!c.sleeping&&X.slot!=="night") add("mood","Sunshine through the window ☀️",DECAY.mood*0.6);
+  if(W==="rain"){
+    if(c.sleeping) add("energy","Rain on the roof — sleeping soundly 🌧️",1.0);
+    else if(fx.light>0) add("mood","Rain outside, lamp on — cosy 🌧️",DECAY.mood*0.5);
+    else add("mood","Grey, rainy day 🌧️",-DECAY.mood*0.4*f,"Place a lamp — rainy days feel cosy with one");
+  }
+  if(W==="storm"&&!c.sleeping) add("mood",X.hideout?"Thunderstorm — but there's somewhere to hide ⛈️":"Thunderstorm — a bit scared ⛈️",
+    -DECAY.mood*(X.hideout?0.5:1.2)*f,"A bed or tunnel gives them somewhere to hide");
+  if(W==="snow"){
+    add("energy","Chilly — snow outside ❄️",-DECAY.energy*0.3*f,"Cats sharing a room keep each other warm");
+    if(X.here.length>1) add("mood","Snuggling up to keep warm ❄️",DECAY.mood*0.5);
+  }
+  // timed effects (tricks…) — each carries its own label
   for(const b of (c.buffs||[])) if(now()<b.until) add(b.stat,b.label,b.v);
   return R;
 }
@@ -2441,6 +2475,109 @@ function daySlot(){
   if(h<5) return "night"; if(h<8) return "dawn"; if(h<12) return "morning";
   if(h<17) return "day"; if(h<20) return "dusk"; return "night";
 }
+/* ═══════════════════════ WEATHER ═══════════════════════
+   Made up by the game, on Australian seasons: summer storms in Dec–Feb,
+   the odd snowy day in Jun–Aug. It changes every three hours and is the
+   same for everyone at a given time, so a reload never rerolls it. You
+   see it through the windows (rain, snow, clouds, a sunbeam across the
+   floor, lightning over the whole room) and it changes how cats feel —
+   those effects go through catRates(), so the stat breakdown explains
+   them like everything else.                                          */
+const WEATHER={
+  sunny: {i:"☀️", n:"Sunny",        tint:[1.00,0.95,0.82,0.03], d:"Sunbeams through the windows lift everyone's mood."},
+  cloudy:{i:"⛅", n:"Cloudy",       tint:[0.78,0.82,0.90,0.08], d:"A quiet, grey day."},
+  rain:  {i:"🌧️", n:"Rain",         tint:[0.64,0.70,0.86,0.14], d:"Cats get sleepy. A lamp makes it cosy; without one it's gloomy."},
+  storm: {i:"⛈️", n:"Thunderstorm", tint:[0.48,0.52,0.74,0.22], d:"Thunder scares cats — a bed or tunnel gives them somewhere to hide."},
+  snow:  {i:"❄️", n:"Snow",         tint:[0.90,0.95,1.00,0.10], d:"Chilly! Cats sharing a room snuggle up to keep warm."},
+};
+const W_BLOCK=3*3600000;
+const seasonOf=d=>{ const m=d.getMonth(); return (m===11||m<=1)?"summer":m<=4?"autumn":m<=7?"winter":"spring"; };
+const W_ODDS={summer:{sunny:48,cloudy:18,rain:14,storm:20,snow:0}, autumn:{sunny:34,cloudy:30,rain:30,storm:6,snow:0},
+              winter:{sunny:26,cloudy:32,rain:28,storm:4,snow:10}, spring:{sunny:42,cloudy:26,rain:24,storm:8,snow:0}};
+function hash32(n){ n=Math.imul(n^(n>>>16),0x45d9f3b); n=Math.imul(n^(n>>>16),0x45d9f3b); return (n^(n>>>16))>>>0; }
+function weatherAt(t){
+  const block=Math.floor(t/W_BLOCK), odds=W_ODDS[seasonOf(new Date(block*W_BLOCK))];
+  const r=hash32(block*7919+13)/4294967296, tot=Object.values(odds).reduce((a,b)=>a+b,0);
+  let acc=0; for(const k in odds){ acc+=odds[k]/tot; if(r<acc) return k; }
+  return "sunny";
+}
+function weatherNow(){ return state&&state.settings.weather===false?null:weatherAt(now()); }
+function weatherChangesAt(){ const w=weatherAt(now()); let b=Math.floor(now()/W_BLOCK)+1;
+  for(let i=0;i<8&&weatherAt(b*W_BLOCK)===w;i++) b++; return b*W_BLOCK; }
+function weatherBlurb(){
+  const w=weatherNow(); if(!w) return "Weather is switched off in Settings.";
+  const until=new Date(weatherChangesAt()), hh=until.getHours(), t=`${hh%12||12}${hh<12?"am":"pm"}`;
+  return `${WEATHER[w].i} ${WEATHER[w].n} until about ${t} — ${WEATHER[w].d}`;
+}
+const Wx={
+  flash:0, nextBolt:4, cv:null, g:null, w:0, h:0,
+  ensure(){
+    if(!this.cv) this.cv=document.getElementById("wxCv");
+    const dpr=Math.min(2,devicePixelRatio||1), W=View.w, H=View.h;
+    if(this.w!==W||this.h!==H||!this.g){ this.w=W; this.h=H;
+      this.cv.width=Math.round(W*dpr); this.cv.height=Math.round(H*dpr);
+      this.g=this.cv.getContext("2d"); this.g.setTransform(dpr,0,0,dpr,0,0); }
+  },
+  /* the glass of each window in the room, on screen (see the window painter: glass is 80/128 of the cell) */
+  panes(){
+    const r=activeRoom(), out=[];
+    for(const p of r.placed){ const it=ITEM_BY_ID[p.item]; if(!it||it.shape!=="window") continue;
+      const w=it.w, sx=p.x*View.worldW-View.camX, sy=p.y*View.h;
+      if(sx<-w||sx>View.w+w) continue;
+      out.push({x:sx-w/2+w*24/128, y:sy-w+w*26/128, s:w*80/128}); }
+    return out;
+  },
+  frame(dt){
+    if(!state) return;
+    this.ensure();
+    const g=this.g, W=this.w, H=this.h, w=weatherNow(), t=performance.now()/1000;
+    g.clearRect(0,0,W,H);
+    this.flash=Math.max(0,this.flash-dt*3.2);
+    if(!w) return;
+    const night=daySlot()==="night";
+    // lightning now and then; cats jump, thunder follows
+    if(w==="storm"){
+      this.nextBolt-=dt;
+      if(this.nextBolt<=0){ this.nextBolt=rnd(7,16); this.flash=1;
+        setTimeout(()=>Audio.sfx("thunder"),rnd(250,1100));
+        for(const c of catsIn(state.activeRoom)) if(!c.sleeping&&!c.gameCtl&&!isBreeding(c)) spriteAnim(c,"startle",500);
+      }
+    }
+    for(const P of this.panes()){
+      g.save(); g.beginPath(); g.rect(P.x,P.y,P.s,P.s); g.clip();
+      const wash={sunny:null,cloudy:"rgba(200,208,220,.35)",rain:"rgba(120,138,170,.42)",storm:"rgba(70,80,112,.55)",snow:"rgba(226,234,244,.45)"}[w];
+      if(wash){ g.fillStyle=wash; g.fillRect(P.x,P.y,P.s,P.s); }
+      if(w==="cloudy"||w==="rain"||w==="storm"){
+        g.fillStyle=w==="cloudy"?"rgba(255,255,255,.7)":"rgba(170,178,196,.7)";
+        for(let i=0;i<2;i++){ const cx=P.x+((t*6*(i+1)+i*P.s*0.6)%(P.s*1.6))-P.s*0.3, cy=P.y+P.s*(0.22+i*0.18);
+          g.beginPath(); g.ellipse(cx,cy,P.s*0.2,P.s*0.08,0,0,6.283); g.ellipse(cx+P.s*0.1,cy-P.s*0.05,P.s*0.12,P.s*0.07,0,0,6.283); g.fill(); }
+      }
+      if(w==="rain"||w==="storm"){
+        const n=w==="storm"?26:16, fall=w==="storm"?260:190;
+        g.strokeStyle="rgba(225,235,255,.75)"; g.lineWidth=1.2; g.beginPath();
+        for(let i=0;i<n;i++){ const sx=hash32(i*131+7)/4294967296, sy=hash32(i*977+3)/4294967296;
+          const x=P.x+((sx*P.s+t*fall*0.25)%P.s), y=P.y+((sy*P.s*1.3+t*fall)%(P.s*1.3))-P.s*0.15;
+          g.moveTo(x,y); g.lineTo(x-3,y+9); }
+        g.stroke();
+      }
+      if(w==="snow"){
+        g.fillStyle="rgba(255,255,255,.95)";
+        for(let i=0;i<18;i++){ const sx=hash32(i*211+5)/4294967296, sy=hash32(i*613+9)/4294967296;
+          const x=P.x+((sx*P.s+Math.sin(t*1.3+i)*6)%P.s), y=P.y+((sy*P.s+t*22)%P.s);
+          g.beginPath(); g.arc(x,y,1.4+sx*1.4,0,6.283); g.fill(); }
+      }
+      if(this.flash>0){ g.fillStyle=`rgba(255,255,255,${this.flash*0.9})`; g.fillRect(P.x,P.y,P.s,P.s); }
+      g.restore();
+      // a sunbeam across the floor on sunny days
+      if(w==="sunny"&&!night&&daySlot()!=="dusk"){
+        const fy=H*0.97, grad=g.createLinearGradient(0,P.y+P.s,0,fy);
+        grad.addColorStop(0,"rgba(255,236,170,.20)"); grad.addColorStop(1,"rgba(255,236,170,0)");
+        g.fillStyle=grad; g.beginPath();
+        g.moveTo(P.x,P.y+P.s); g.lineTo(P.x+P.s,P.y+P.s); g.lineTo(P.x+P.s*1.9,fy); g.lineTo(P.x+P.s*0.55,fy); g.closePath(); g.fill();
+      }
+    }
+  }
+};
 const DAY_LOOK={
   dawn:   {tint:[1.0,0.80,0.72,0.11], label:"Dawn",     icon:"🌅"},
   morning:{tint:[1.0,0.97,0.86,0.04], label:"Morning",  icon:"☀️"},
@@ -2450,14 +2587,18 @@ const DAY_LOOK={
 };
 function currentTint(){
   const slot=daySlot(), L=DAY_LOOK[slot];
-  if(!state||!state.settings.dayNight) return [1,1,1,0];
-  const t=L.tint.slice();
+  const t=(!state||!state.settings.dayNight)?[1,1,1,0]:L.tint.slice();
+  if(!state) return t;
   const r=activeRoom();
   if(r){ const fx=roomFx(r);
     if(fx.light>0 && (slot==="night"||slot==="dusk")) t[3]*=0.42;      // lamps push back the dark
     const th=ROOM_THEMES.find(x=>x.id===r.theme);
     if(th&&th.amb){ t[0]*=th.amb[0]; t[1]*=th.amb[1]; t[2]*=th.amb[2]; }
   }
+  const w=weatherNow();
+  if(w){ const e=WEATHER[w].tint, a=t[3]+e[3]*(1-t[3]);       // lay the weather's light over the time of day
+    if(a>0){ for(let i=0;i<3;i++) t[i]=(t[i]*t[3]+e[i]*e[3]*(1-t[3]))/a; t[3]=a; } }
+  if(Wx.flash>0){ const f=Wx.flash*0.5; for(let i=0;i<3;i++) t[i]=t[i]*(1-f)+f; t[3]=Math.max(t[3],f); }
   return t;
 }
 
@@ -2838,8 +2979,10 @@ function renderHUD(){
   document.getElementById("pts").textContent=state.pts;
   document.getElementById("streakN").textContent=state.streak||0;
   const L=DAY_LOOK[daySlot()];
+  // one icon: the weather, or the time of day when it's clear (a clear night is still a moon)
+  const wn=weatherNow();
   document.getElementById("timeLbl").textContent=L.label;
-  document.getElementById("timeChip").firstChild.textContent=L.icon+" ";
+  document.getElementById("timeChip").firstChild.textContent=(wn&&wn!=="sunny"?WEATHER[wn].i:L.icon)+" ";
   const c=selectedCat(); if(!c) return;
   document.getElementById("who").innerHTML=`<b>${esc(c.name)}</b> ${sexSym(c.sex)}`;
   const si=stageIndex(c);
@@ -3109,7 +3252,8 @@ function questCandidates(){
   }
   for(const r of state.rooms){
     const here=catsIn(r.id); if(!here.length) continue;
-    if(roomFx(r).light===0) add(3,{t:"light",room:r.id,i:"💡",rw:40,n:`Light up ${r.name} for night-time`,why:`No lamp — cats get gloomy after dark`});
+    if(roomFx(r).light===0){ const wet=["rain","storm"].includes(weatherNow());
+      add(wet?5:3,{t:"light",room:r.id,i:"💡",rw:40,n:wet?`Make ${r.name} cosy for the rain`:`Light up ${r.name} for night-time`,why:wet?`A lamp turns a grey day cosy`:`No lamp — cats get gloomy after dark`}); }
     if(!scratchSpots(r).length&&(r.couch<75||here.some(c=>traitOf(c)==="scratchy"))) add(3,{t:"post",room:r.id,i:"🪵",rw:40,
       n:`Save the sofa in ${r.name}`,why:`Place a scratching post`});
     const have=litterSpots(r).length, need=needTrays(r);
@@ -3709,6 +3853,7 @@ function assignBehavior(c){
   if(traitOf(c)==="sleepy") napChance=0.75;
   if(slot==="night") napChance+=0.25;
   if(slot==="dawn") napChance-=0.2;
+  const wet=weatherNow(); if(wet==="rain") napChance+=0.15; if(wet==="storm") napChance+=0.2;
   if(c.energy<30&&roll<napChance){
     const bs=bedSpots(r);
     if(bs.length){ const t=targetOf(pick(bs)); c.tx=t.tx; c.ty=t.ty; }
@@ -3902,6 +4047,7 @@ function frame(ts){
       }
     }
     if(Play.on) Play.frame(dt);
+    Wx.frame(dt);
     positionSprites();
     positionFurniHits();
     if(roomNeedsRedraw(ts/1000)) drawRoom(ts/1000);
@@ -3921,6 +4067,7 @@ function frame(ts){
 /* ═══════════════════════ 22. STAT TICK ═══════════════════════ */
 function tick(){
   if(!state) return;
+  { const w=weatherNow(); Audio.setRain(w==="storm"?0.09:w==="rain"?0.05:0); }
   const dead=[], away=[], slot=daySlot();
   for(const room of state.rooms){
     const X=roomCtx(room), here=X.here;
@@ -4545,6 +4692,7 @@ settings(){
       ${sw("sfx","Sound effects","Purrs, meows, coins and fanfares.")}
       <div class="slider"><label>Effects</label><input type="range" min="0" max="100" value="${Math.round(S.sfxVol*100)}" data-vol="sfx"><span class="v">${Math.round(S.sfxVol*100)}</span></div>
       ${sw("dayNight","Day & night lighting","The room dims after dark. Lamps push it back.")}
+      ${sw("weather","Weather","Sunshine, rain, storms and snow — each changes how your cats feel.")}
       ${sw("particles","Particle effects","Dust motes, confetti, petals and sparkles.")}
       ${sw("awayMode","Cats wander off instead of passing away","If neglected too long, a cat goes missing — play the Homeward Maze to bring them back — rather than being lost for good.")}
       <div class="coltitle">Engine</div>
@@ -4675,6 +4823,7 @@ function bindSheet(){
     if(k==="sfx") Audio.setSfx(state.settings[k]);
     if(k==="realMusic") Audio.setRealMusic(state.settings[k]);
     if(k==="particles"&&!state.settings[k]) Particles.clear();
+    if(k==="weather"){ Audio.setRain(0); renderHUD(); }
     saveGame(); refreshSheet();
   });
   on("[data-vol]",e=>{
@@ -4795,6 +4944,7 @@ function gameCheck(c,g,quiet){
   if(isBreeding(c)) return no(breedStatus());
   const left=gameRest(c,g); if(left>0) return no(`${g.n} is resting — ready in ${Math.ceil(left/60000)} min`);
   if(c.energy<(g.minEnergy||0)) return no(`${c.name} is too tired for ${g.n} — try Purr Rhythm or a nap`);
+  if(g.id==="fishing"&&weatherNow()==="storm") return no(`The rockpool's too wild in a storm ⛈️ — go when it passes`);
   return true;
 }
 /* what this cat wants to play, and why */
@@ -4804,7 +4954,7 @@ function recommendGame(c){
   const learn=TRICKS.find(t=>!(c.tricks||[]).includes(t.id)&&c.bond>=t.bond);
   if(learn){ const g=ok.find(x=>x.trick===learn.id); if(g) return {g,why:`Win it to teach ${c.name} ${learn.n} ${learn.emoji}`}; }
   if(c.energy<35&&has("purr")) return {g:has("purr"),why:`${c.name} is tired — a calm session restores energy`};
-  if(c.tummy<40&&has("fishing")) return {g:has("fishing"),why:`Hungry — bring home a fish for dinner`};
+  if(c.tummy<40&&has("fishing")) return {g:has("fishing"),why:weatherNow()==="rain"?`Hungry — and the fish bite in the rain`:`Hungry — bring home a fish for dinner`};
   const t=traitOf(c);
   if(["naughty","scratchy","athletic"].includes(t)&&has("laser")) return {g:has("laser"),why:`${TRAITS[t].label} — burn off those zoomies`};
   if(stageIndex(c)===0&&has("yarn")) return {g:has("yarn"),why:`Kittens grow faster with puzzle play`};
@@ -4833,7 +4983,8 @@ function awardGame(c,g,win,score,goal){
     if(!c.sick) c.growth+=g.growth||8;
     if(g.id==="laser"){ c.settledUntil=Math.max(c.settledUntil||0,now()+10*60000); out.lines.push("tuckered out — on best behaviour for 10 min"); }
     if(g.id==="feather") out.lines.push("played together — extra bond");
-    if(g.id==="fishing"){ state.pantry=state.pantry||{}; state.pantry.fish=(state.pantry.fish||0)+1; out.lines.push("brought home a fish 🐟 — a free meal"); }
+    if(g.id==="fishing"){ const n=weatherNow()==="rain"?2:1; state.pantry=state.pantry||{}; state.pantry.fish=(state.pantry.fish||0)+n;
+      out.lines.push(n>1?"the fish bite in the rain — two fish 🐟🐟 for free meals":"brought home a fish 🐟 — a free meal"); }
     if(g.id==="yarn") out.lines.push(c.sick?"puzzle play (no growth while unwell)":"puzzle play — a growth boost");
     if(g.id==="purr") out.lines.push("purred themselves calm — energy up");
     if(fav) out.lines.push("their favourite!");
@@ -5487,6 +5638,7 @@ function bindUI(){
     b.addEventListener("click",()=>openSheet(b.dataset.sheet)));
   document.getElementById("sleepBtn").addEventListener("click",toggleSleep);
   document.getElementById("menuBtn").addEventListener("click",()=>openSheet("menu"));
+  document.getElementById("timeChip").addEventListener("click",()=>toast(weatherBlurb()));
   document.getElementById("decoBtn").addEventListener("click",()=>{
     closeSheet(); Deco.toggle();
     toast(Deco.on?"Decorate mode — drag furniture about 🎨":"Decorate mode off");
@@ -5549,7 +5701,7 @@ function migrate(s){
   s.version=5;
   s.owned=s.owned||{}; s.wish=s.wish||{}; s.ach=s.ach||{}; s.seen=s.seen||{};
   s.stats=Object.assign({fed:0,cleaned:0,pets:0,games:0,placed:0,bred:0,rubs:0},s.stats||{});
-  s.settings=Object.assign({music:true,sfx:true,musicVol:0.34,sfxVol:0.7,dayNight:true,particles:true,awayMode:true,realMusic:true},s.settings||{});
+  s.settings=Object.assign({music:true,sfx:true,musicVol:0.34,sfxVol:0.7,dayNight:true,particles:true,awayMode:true,realMusic:true,weather:true},s.settings||{});
   for(const c of s.cats) c.away=!!c.away;
   s.streak=s.streak||0; s.coinCapBonus=s.coinCapBonus||0; s.toys=s.toys||[];
   for(const r of s.rooms){
