@@ -1595,6 +1595,13 @@ const PALETTES=[
   {k:"drift",   n:"Driftwood",     lo:"#8E8377", hi:"#E6DED2", t:0},
   {k:"sky",     n:"Sky Wash",      lo:"#7396AC", hi:"#DBEDF6", t:0},
   {k:"butter",  n:"Butter",        lo:"#C4A455", hi:"#FBEFC2", t:0},
+  /* The original version's starter bed and tray, reproduced exactly. Each
+     is solved from that version's CSS against the luminance stops the
+     painters use (bed: edge .5 #DA8BA7, cushion .85 #F6CFDC; tray: body .5
+     #9AA2AC, sand .86 #E8DCC2), so the ramp lands on the old colours
+     instead of the nearest-looking existing palette. */
+  {k:"classicBed", n:"Classic",    lo:"#B22A5B", hi:"#FFECF3", t:0},
+  {k:"classicTray",n:"Classic",    lo:"#2E518D", hi:"#FFF3CB", t:0},
   {k:"bottle",  n:"Bottlebrush",   lo:"#9A3A3F", hi:"#F0A090", t:1},
   {k:"ocean",   n:"Ocean Deep",    lo:"#2F5B78", hi:"#8FC6DE", t:1},
   {k:"honey",   n:"Honey Oak",     lo:"#8C5A24", hi:"#EFC384", t:1},
@@ -1641,13 +1648,13 @@ const FURNI_DEFS=[
   {s:"hangingPlant",n:"Hanging Pothos", c:"plants",    w:56,  base:78,  z:"wall",  fn:["mood",0.05], p:["gum","moss","terra","verdi","wattle"]},
   {s:"sakuraTree",  n:"Blossom Tree",   c:"plants",    w:80,  base:210, z:"floor", fn:["mood",0.10], p:["dusty","reef","lilac","opal"]},
   {s:"catTower",    n:"Cat Tower",      c:"cat-gear",  w:88,  base:200, z:"floor", fn:["moodSlow",0.30], p:["oat","gum","drift","honey","bottle","midnight","wattle"]},
-  {s:"catBed",      n:"Cat Bed",        c:"cat-gear",  w:84,  base:110, z:"floor", fn:["bed",1.0], p:["oat","dusty","sky","butter","lilac","reef","midnight","opal"]},
+  {s:"catBed",      n:"Cat Bed",        c:"cat-gear",  w:84,  base:110, z:"floor", fn:["bed",1.0], p:["classicBed","oat","dusty","sky","butter","lilac","reef","midnight","opal"]},
   {s:"hammock",     n:"Cat Hammock",    c:"cat-gear",  w:86,  base:150, z:"floor", fn:["energy",0.30], p:["gum","sky","drift","ocean","verdi","wattle"]},
   {s:"scratchPost", n:"Scratching Post",c:"cat-gear",  w:52,  base:82,  z:"floor", fn:["scratch",1], p:["oat","gum","terra","honey","moss","ember","opal"]},
   {s:"scratchRamp", n:"Scratch Ramp",   c:"cat-gear",  w:92,  base:96,  z:"floor", fn:["scratch",1], p:["oat","drift","honey","bottle","verdi"]},
   {s:"tunnel",      n:"Play Tunnel",    c:"cat-gear",  w:98,  base:104, z:"floor", fn:["play",1], p:["sky","butter","bottle","lilac","reef","opal"]},
   {s:"windowPerch", n:"Window Perch",   c:"cat-gear",  w:82,  base:126, z:"wall",  fn:["perch",0.35], p:["oat","sky","dusty","verdi","wattle"]},
-  {s:"litterBox",   n:"Litter Tray",    c:"cat-gear",  w:76,  base:58,  z:"floor", fn:["litter",1], p:["drift","sky","gum","oat","lilac","verdi"]},
+  {s:"litterBox",   n:"Litter Tray",    c:"cat-gear",  w:76,  base:58,  z:"floor", fn:["litter",1], p:["classicTray","drift","sky","gum","oat","lilac","verdi"]},
   {s:"foodBowl",    n:"Food Bowl",      c:"cat-gear",  w:58,  base:26,  z:"floor", p:["drift","sky","dusty","butter","verdi","wattle"]},
   {s:"autoFeeder",  n:"Auto-Feeder",    c:"cat-gear",  w:66,  base:120, z:"floor", fn:["feeder",1], p:["drift","sky","gum","honey","ocean","wattle"]},
   {s:"fountain",    n:"Water Fountain", c:"cat-gear",  w:70,  base:112, z:"floor", fn:["tummySlow",0.25], p:["sky","verdi","ocean","lilac","opal"]},
@@ -1849,7 +1856,7 @@ function priceNice(v){ return v<100?Math.round(v/5)*5:v<1000?Math.round(v/10)*10
 
 /* A small free starter kit so a new café isn't a bare box.
    Everything else has to be earned. */
-const FREE_ITEMS=["w_cream","f_oak","i_window_sky","i_catBed_dusty","i_litterBox_sky"];
+const FREE_ITEMS=["w_cream","f_oak","i_window_sky","i_catBed_classicBed","i_litterBox_classicTray"];
 for(const id of FREE_ITEMS){ const it=ITEM_BY_ID[id]; if(it){ it.price=0; it.free=true; } }
 
 /* ═══════════════════════ 7. CATS ═══════════════════════ */
@@ -2079,9 +2086,13 @@ function buildCatSVG(c){
 }
 
 /* ═══════════════════════ 9. STATE ═══════════════════════ */
-/* bumped so everyone's next load starts completely fresh — a clean slate
-   to actually see today's fixes instead of a save that predates them */
-const SAVE_KEY="kittencafe_save_v6";
+/* Bumped so everyone's next load starts completely fresh. Placed furniture
+   keeps the colour it was created with, so a starter-kit colour change never
+   reaches an existing save: v6 was opened while the kit was still a grey bed
+   and a green tray, and the kit changed after, so those two stayed in every
+   v6 save. v7 is opened with the classic colours already in place, and init()
+   deletes the old slots so nothing stale lingers in the browser. */
+const SAVE_KEY="kittencafe_save_v7";
 let state=null, saveTimer=null, lastFrame=0;
 let spriteEls={}, cooldowns={}, selF=null, selM=null;
 const msgQueue=[]; let msgBusy=false;
@@ -2133,8 +2144,8 @@ function freshState(){
   // the free starter kit — a wallpaper, a floor, a window and two bits of furniture
   for(const id of FREE_ITEMS) s.owned[id]=1;
   const win={u:uid("p"), item:"i_window_sky",      x:0.62, y:0.30, flip:1};
-  const bed={u:uid("p"), item:"i_catBed_dusty",  x:0.30, y:0.80, flip:1};
-  const lit={u:uid("p"), item:"i_litterBox_sky",   x:0.82, y:0.78, flip:1};
+  const bed={u:uid("p"), item:"i_catBed_classicBed",     x:0.30, y:0.80, flip:1};
+  const lit={u:uid("p"), item:"i_litterBox_classicTray", x:0.82, y:0.78, flip:1};
   room.placed=[win,bed,lit];
   room.litterClean[lit.u]=100;
   generateShelter();
@@ -4858,9 +4869,9 @@ function migrate(s){
     r.poops=(r.poops||[]).map(p=>({id:p.id||uid("p"),x:p.x!==undefined?p.x:rnd(0.2,0.8),y:p.y>0.6?p.y:rnd(0.72,0.92)}));
     // old saves kept litter boxes and feeders as separate arrays — turn them into real furniture
     (r.litters||[]).forEach(b=>{
-      const p={u:uid("p"),item:"i_litterBox_sky",x:clamp(b.x||rnd(0.1,0.9),0.05,0.95),y:rnd(0.74,0.9),flip:1};
+      const p={u:uid("p"),item:"i_litterBox_classicTray",x:clamp(b.x||rnd(0.1,0.9),0.05,0.95),y:rnd(0.74,0.9),flip:1};
       r.placed.push(p); r.litterClean[p.u]=b.clean===undefined?100:b.clean;
-      s.owned["i_litterBox_sky"]=1;
+      s.owned["i_litterBox_classicTray"]=1;
     });
     if(r.feeder&&r.feeder.level){
       const p={u:uid("p"),item:"i_autoFeeder_oat",x:rnd(0.15,0.85),y:rnd(0.74,0.9),flip:1};
@@ -4868,17 +4879,6 @@ function migrate(s){
       s.owned["i_autoFeeder_oat"]=1;
     }
     delete r.litters;
-  }
-  /* The starter litter tray used to be handed out in "Driftwood", which
-     renders as flat grey next to everything else in the starter kit. Swap
-     any already-placed one over to "Sky Wash" — the blue-grey the original
-     version's tray actually used — instead of leaving old saves stuck
-     looking at the grey one forever. Flagged so a player who deliberately
-     buys the Driftwood variant back later keeps it. */
-  if(!s._trayRecolour2){
-    for(const r of s.rooms) for(const p of r.placed) if(p.item==="i_litterBox_drift") p.item="i_litterBox_sky";
-    if(s.owned&&s.owned["i_litterBox_drift"]) s.owned["i_litterBox_sky"]=1;
-    s._trayRecolour2=true;
   }
   for(const c of s.cats){
     if(c.bond===undefined) c.bond=8;
@@ -4894,6 +4894,12 @@ function migrate(s){
 }
 
 async function init(){
+  try{
+    for(let i=localStorage.length-1;i>=0;i--){
+      const k=localStorage.key(i);
+      if(k&&k.startsWith("kittencafe_save_")&&k!==SAVE_KEY) localStorage.removeItem(k);
+    }
+  }catch(e){}
   const loaded=await loadGame();
   state=loaded?migrate(loaded):null;
   if(!state) state=freshState();
