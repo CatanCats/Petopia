@@ -1,10 +1,10 @@
-# Weaving mini-games into Kitten Café
+# Weaving mini-games into Petopia
 
 Right now every mini-game (Feather Chase, Yarn Maze, Rockpool Fishing, Laser
 Dash, Purr Rhythm) lives behind one door: the **Games** tab. You pick a game,
 play it in a fullscreen modal, get coins/mood/bond, and go back to the room.
 That's fine, but it means the mini-games never touch the rest of the
-simulation — they're a side activity, not part of caring for the café.
+simulation — they're a side activity, not part of caring for your pets.
 
 Implemented as a first example: the **Homeward Maze** (see `awayMode` in
 Settings). It isn't in the Games tab at all — it's triggered by the world
@@ -26,7 +26,7 @@ comes home). That's the pattern the ideas below extend.
 
 3. **Minigame results feed the room, not just the cat.** A perfect Purr
    Rhythm run could nudge every cat in the room's mood, not just the
-   soloist's — turns a solo activity into a shared café moment, and gives
+   soloist's — turns a solo activity into a shared moment for the whole home, and gives
    multi-cat rooms a reason to play together.
 
 4. **Difficulty and skin tied to breed/trait**, already partly true via
@@ -51,4 +51,4 @@ comes home). That's the pattern the ideas below extend.
 
 The common thread: pull the trigger and the payoff out of the Games tab and
 into the room simulation itself, so playing a mini-game is something that
-*happens* while caring for the café, not a separate errand.
+*happens* while caring for your pets, not a separate errand.

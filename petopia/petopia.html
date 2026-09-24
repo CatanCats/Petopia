@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#FBF3E7">
-<title>Kitten Café 🐾</title>
+<title>Petopia 🐾</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 /* ══════════════════════════════════════════════════════════════
-   KITTEN CAFÉ — design tokens
+   PETOPIA — design tokens
    Cosy Aussie sunroom: warm cream, terracotta clay, eucalypt mint.
    ══════════════════════════════════════════════════════════════ */
 :root{
@@ -489,14 +489,14 @@ input,button,textarea{font-family:inherit;color:inherit;}
   font-family:system-ui,sans-serif;padding:24px;box-sizing:border-box;flex-direction:column;align-items:center;
   justify-content:center;text-align:center;gap:12px;">
   <div style="font-size:38px;">🙀</div>
-  <div style="font-size:17px;font-weight:700;">Kitten Café hit a snag and couldn't start</div>
+  <div style="font-size:17px;font-weight:700;">Petopia hit a snag and couldn't start</div>
   <div id="fatalErrorMsg" style="font-size:12px;opacity:.8;max-width:420px;white-space:pre-wrap;word-break:break-word;"></div>
   <button onclick="location.reload()" style="margin-top:8px;padding:10px 22px;border:none;border-radius:12px;
     background:#F08C6E;color:#fff;font-weight:700;font-size:14px;cursor:pointer;">Reload</button>
 </div>
 <div class="app">
   <div class="topbar">
-    <div class="logo"><span class="paw">🐾</span>Kitten&nbsp;Café</div>
+    <div class="logo"><span class="paw">🐾</span>Petopia</div>
     <div class="right-tools">
       <div class="streak" id="streakChip" title="Daily care streak">🔥<span id="streakN">0</span></div>
       <div class="wallet" id="wallet"><span class="coin">✦</span><span id="pts">0</span></div>
@@ -586,7 +586,7 @@ input,button,textarea{font-family:inherit;color:inherit;}
 </div>
 
 <div class="photoOut" id="photoOut">
-  <img class="pc" id="photoImg" alt="Your café snapshot">
+  <img class="pc" id="photoImg" alt="Your Petopia snapshot">
   <div class="prow">
     <button class="pb" id="photoClose">Close</button>
     <button class="pb pri" id="photoSave">Save photo</button>
@@ -597,7 +597,7 @@ input,button,textarea{font-family:inherit;color:inherit;}
 
 "use strict";
 /* ══════════════════════════════════════════════════════════════════════════
-   KITTEN CAFÉ — a cosy Aussie cat sim
+   PETOPIA — a cosy Aussie cat sim
    ─────────────────────────────────────────────────────────────────────────
    Engine notes
    • Particles run in a hand-assembled WebAssembly module (430 bytes, below).
@@ -611,7 +611,7 @@ input,button,textarea{font-family:inherit;color:inherit;}
      there are only ever a handful on screen.
    ══════════════════════════════════════════════════════════════════════════ */
 
-const LOG = (...a)=>{ try{ console.log("[café]",...a); }catch(_){} };
+const LOG = (...a)=>{ try{ console.log("[petopia]",...a); }catch(_){} };
 const clamp=(v,a=0,b=100)=>Math.max(a,Math.min(b,v));
 const lerp=(a,b,t)=>a+(b-a)*t;
 const pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -976,7 +976,7 @@ function make2D(canvas){
 
 /* ═══════════════════════ 4. AUDIO ═══════════════════════
    Music has two sources: real recorded tracks in ../Songs (optional — the
-   café works fine without that folder), or a slow generative loop keyed to
+   game works fine without that folder), or a slow generative loop keyed to
    the room's theme when there's nothing to play. SFX are always synthesised
    short shaped envelopes, no files needed.                                 */
 const SONGS_DIR="Songs/";
@@ -1874,7 +1874,7 @@ const BUNDLES=[
    items:["i_catTower_bottle","i_hammock_ocean","i_tunnel_reef","i_scratchRamp_bottle"]},
   {id:"b_garden",  n:"Sunroom Garden",  price:560, r:2, desc:"Six shades of green.",
    items:["i_potPlant_verdi","i_fern_verdi","i_hangingPlant_verdi","i_sakuraTree_lilac","i_window_sky"]},
-  {id:"b_gala",    n:"Gilded Gala Set", price:1600,r:3, desc:"Show-off furniture for a finished café.",
+  {id:"b_gala",    n:"Gilded Gala Set", price:1600,r:3, desc:"Show-off furniture for a finished home.",
    items:["i_sofa_wattle","i_sideTable_opal","i_mirror_wattle","i_orbLamp_opal","i_fishTank_opal","i_bunting_wattle"]},
   {id:"b_spooky",  n:"Halloween Box",   price:700, r:2, desc:"Only about in October.", season:10,
    items:["i_pumpkin_ember","i_lantern_ember","i_artCat_midnight","i_bunting_reef"]},
@@ -1906,7 +1906,7 @@ function priceNice(v){ return v<100?Math.round(v/5)*5:v<1000?Math.round(v/10)*10
   for(const b of BUNDLES)    addItem({id:b.id,name:b.n,cat:"bundles",kind:"bundle",r:b.r,price:b.price,contents:b.items,desc:b.desc});
 })();
 
-/* A small free starter kit so a new café isn't a bare box.
+/* A small free starter kit so a new home isn't a bare box.
    Everything else has to be earned. */
 const FREE_ITEMS=["w_cream","f_oak","i_window_sky","i_catBed_classicBed","i_litterBox_classicTray"];
 for(const id of FREE_ITEMS){ const it=ITEM_BY_ID[id]; if(it){ it.price=0; it.free=true; } }
@@ -2155,13 +2155,14 @@ function buildCatSVG(c){
 }
 
 /* ═══════════════════════ 9. STATE ═══════════════════════ */
-/* Bumped so everyone's next load starts completely fresh. Placed furniture
-   keeps the colour it was created with, so a starter-kit colour change never
-   reaches an existing save: v6 was opened while the kit was still a grey bed
-   and a green tray, and the kit changed after, so those two stayed in every
-   v6 save. v7 is opened with the classic colours already in place, and init()
-   deletes the old slots so nothing stale lingers in the browser. */
-const SAVE_KEY="kittencafe_save_v7";
+/* The game is Petopia now, and so is its save. A save from before the
+   rename lives under LEGACY_SAVE_KEY: it's loaded when there's no Petopia
+   save yet, and only removed once it's been written under the new name,
+   so renaming never costs anyone their progress. (v7 was itself a clean
+   slate: placed furniture keeps the colour it was made with, and v6 had
+   been opened while the starter kit was still a grey bed and green tray.) */
+const SAVE_KEY="petopia_save";
+const LEGACY_SAVE_KEY="kittencafe_save_v7";
 let state=null, saveTimer=null, lastFrame=0;
 let spriteEls={}, cooldowns={}, selF=null, selM=null;
 const msgQueue=[]; let msgBusy=false;
@@ -2408,11 +2409,16 @@ const Store={
     window.__mem=window.__mem||{}; window.__mem[k]=v;
   }
 };
-async function loadGame(){ try{ const v=await Store.get(SAVE_KEY); return v?JSON.parse(v):null; }catch(e){ return null; } }
+async function loadGame(){
+  try{ const v=await Store.get(SAVE_KEY); if(v) return JSON.parse(v); }catch(e){}
+  try{ const v=await Store.get(LEGACY_SAVE_KEY); if(v) return JSON.parse(v); }catch(e){}
+  return null;
+}
 function saveGame(){
   clearTimeout(saveTimer);
   saveTimer=setTimeout(async()=>{ try{ state.lastSeen=now();
-    await Store.set(SAVE_KEY,JSON.stringify(state,(k,v)=>k.charAt(0)==="_"?undefined:v)); }catch(e){} },700);
+    await Store.set(SAVE_KEY,JSON.stringify(state,(k,v)=>k.charAt(0)==="_"?undefined:v));
+    try{ if(localStorage.getItem(SAVE_KEY)) localStorage.removeItem(LEGACY_SAVE_KEY); }catch(_){} }catch(e){} },700);
 }
 
 /* ═══════════════════════ 10. VIEW & CAMERA ═══════════════════════ */
@@ -3137,7 +3143,7 @@ const COSTUME_EMOJI={c_bell:"🔔",c_bandana:"🧣",c_bowtie:"🎀",c_ribbon:"�
 const ACHIEVEMENTS=[
   {id:"ach_firstfeed", n:"First Feed",        i:"🍽️", d:"Feed a cat for the very first time.",   goal:1,   get:s=>s.stats.fed,        rw:{coins:25}},
   {id:"ach_fed25",     n:"Short-Order Cook",  i:"🥣", d:"Serve 25 meals.",                        goal:25,  get:s=>s.stats.fed,        rw:{coins:80}},
-  {id:"ach_fed150",    n:"Café Kitchen",      i:"👨‍🍳", d:"Serve 150 meals.",                     goal:150, get:s=>s.stats.fed,        rw:{coins:300, item:"c_chef"}},
+  {id:"ach_fed150",    n:"Master Chef",       i:"👨‍🍳", d:"Serve 150 meals.",                     goal:150, get:s=>s.stats.fed,        rw:{coins:300, item:"c_chef"}},
   {id:"ach_clean10",   n:"Tidy Up",           i:"🧹", d:"Clean 10 messes.",                       goal:10,  get:s=>s.stats.cleaned,    rw:{coins:40}},
   {id:"ach_clean50",   n:"Spotless",          i:"✨", d:"Clean 50 messes.",                       goal:50,  get:s=>s.stats.cleaned,    rw:{coins:150, item:"i_litterBox_verdi"}},
   {id:"ach_clean200",  n:"Immaculate",        i:"🧽", d:"Clean 200 messes.",                      goal:200, get:s=>s.stats.cleaned,    rw:{coins:500, cap:6}},
@@ -3145,7 +3151,7 @@ const ACHIEVEMENTS=[
   {id:"ach_pet500",    n:"Professional Patter",i:"🤲", d:"Pet your cats 500 times.",              goal:500, get:s=>s.stats.pets,       rw:{coins:400, cap:5}},
   {id:"ach_cats3",     n:"A Little Clowder",  i:"🐈", d:"Care for 3 cats at once.",               goal:3,   get:s=>s.cats.length,      rw:{coins:70}},
   {id:"ach_cats5",     n:"Full House",        i:"🏠", d:"Care for 5 cats at once.",               goal:5,   get:s=>s.cats.length,      rw:{coins:200, item:"i_sofa_reef"}},
-  {id:"ach_cats9",     n:"Cat Café Proper",   i:"☕", d:"Care for 9 cats at once.",               goal:9,   get:s=>s.cats.length,      rw:{coins:600, cap:8}},
+  {id:"ach_cats9",     n:"Full House",        i:"🏡", d:"Care for 9 cats at once.",               goal:9,   get:s=>s.cats.length,      rw:{coins:600, cap:8}},
   {id:"ach_firstbreed",n:"New Arrivals",      i:"💞", d:"Raise your first litter.",               goal:1,   get:s=>s.stats.bred,       rw:{coins:100}},
   {id:"ach_bred5",     n:"Family Tree",       i:"🌳", d:"Raise 5 litters.",                       goal:5,   get:s=>s.stats.bred,       rw:{coins:320, item:"i_artCat_wattle"}},
   {id:"ach_breeds5",   n:"Spot the Difference",i:"🎨", d:"Meet 5 different breeds.",              goal:5,   get:s=>Object.keys(s.seen||{}).length, rw:{coins:120}},
@@ -4014,7 +4020,7 @@ let fpsAcc=0, fpsN=0;
 function frame(ts){
   /* Backgrounded tabs still get throttled rAF ticks in most browsers, but
      not reliably inside every wrapped WebView — skip the WebGL draws and
-     particle sim ourselves rather than trust that, so a hidden café isn't
+     particle sim ourselves rather than trust that, so a hidden game isn't
      quietly burning GPU/battery. */
   if(document.hidden){ lastFrame=ts; requestAnimationFrame(frame); return; }
   const dt=Math.min(0.05,(ts-lastFrame)/1000||0);
@@ -4556,7 +4562,7 @@ tricks(){
 menu(){
   const q=readyQuests();
   const done=Object.keys(state.ach||{}).length;
-  return {h:`<h2>☰ Café</h2><p class="sub">Streak ${state.streak||0} days · ${state.cats.length} cats · ${Object.keys(state.owned||{}).length} items</p>`,
+  return {h:`<h2>☰ Petopia</h2><p class="sub">Streak ${state.streak||0} days · ${state.cats.length} cats · ${Object.keys(state.owned||{}).length} items</p>`,
     b:`<div class="item selectable" data-open="quests"><div class="big">📋</div><div class="info"><div class="nm">Daily tasks ${q?`<span class="traitPill">${q} ready</span>`:""}</div><div class="ds">Three small jobs, refreshed each day.</div></div></div>
     <div class="item selectable" data-open="achievements"><div class="big">🏆</div><div class="info"><div class="nm">Achievements</div><div class="ds">${done} of ${ACHIEVEMENTS.length} unlocked.</div></div></div>
     <div class="item selectable" data-open="collection"><div class="big">📖</div><div class="info"><div class="nm">Collection book</div><div class="ds">Breeds met, items owned, tricks learnt.</div></div></div>
@@ -4570,14 +4576,14 @@ menu(){
 license(){
   return {h:`<h2>📜 Licence & credits</h2>`,
     b:`<div class="coltitle">Licence</div>
-    <div class="item"><div class="big">©</div><div class="info"><div class="nm">Kitten Café (Petopia)</div>
+    <div class="item"><div class="big">©</div><div class="info"><div class="nm">Petopia</div>
       <div class="ds">© ${new Date().getFullYear()} Catan. Licensed under
       <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a>
       — Attribution, NonCommercial, ShareAlike. Give credit to Catan, don't sell it, share
       any remix under the same licence.</div></div></div>
     <div class="coltitle">Music</div>
     <div class="item"><div class="big">🎵</div><div class="info"><div class="nm">Background tracks</div>
-      <div class="ds">The songs in the café's music player were generated with
+      <div class="ds">The songs in Petopia's music player were generated with
       <a href="https://suno.com" target="_blank" rel="noopener">Suno</a> under a Pro subscription and are used here
       under Suno's terms for Pro-tier generated output — those terms govern the audio itself, separately from this
       project's own CC BY-NC-SA licence. Check <a href="https://suno.com/terms" target="_blank" rel="noopener">Suno's current terms</a>
@@ -4686,9 +4692,9 @@ settings(){
   const sw=(k,t,d)=>`<div class="switchRow"><div><div class="t">${t}</div><div class="d">${d}</div></div>
     <div class="sw-toggle ${S[k]?"on":""}" data-toggle="${k}"></div></div>`;
   return {h:`<h2>⚙️ Sound & settings</h2><p class="sub">Sound effects are synthesised on the fly — no files needed for those.</p>`,
-    b:`${sw("music","Background music","Real café songs when available, otherwise a slow generative loop.")}
+    b:`${sw("music","Background music","Real songs when available, otherwise a slow generative loop.")}
       <div class="slider"><label>Music</label><input type="range" min="0" max="100" value="${Math.round(S.musicVol*100)}" data-vol="music"><span class="v">${Math.round(S.musicVol*100)}</span></div>
-      ${sw("realMusic","Use café playlist",Audio.realFailed?"Songs folder not found — playing the generative loop instead.":"Recorded songs from the Songs folder instead of the generative loop.")}
+      ${sw("realMusic","Use the Petopia playlist",Audio.realFailed?"Songs folder not found — playing the generative loop instead.":"Recorded songs from the Songs folder instead of the generative loop.")}
       ${sw("sfx","Sound effects","Purrs, meows, coins and fanfares.")}
       <div class="slider"><label>Effects</label><input type="range" min="0" max="100" value="${Math.round(S.sfxVol*100)}" data-vol="sfx"><span class="v">${Math.round(S.sfxVol*100)}</span></div>
       ${sw("dayNight","Day & night lighting","The room dims after dark. Lamps push it back.")}
@@ -4699,7 +4705,7 @@ settings(){
       <div class="item"><div class="big">⚡</div><div class="info"><div class="nm">${View.mode2D?"Canvas 2D":"WebGL 2"}</div>
         <div class="ds">Renderer in use · particles: ${Particles.ready?"WebAssembly":"JavaScript"} · pool ${Particles.count}/${P_MAX}</div></div></div>
       <div class="coltitle">Danger zone</div>
-      <button class="buy wide" id="resetBtn" style="background:#F1C0B3;border-color:#C87C64;color:#8C3E28">Start a brand new café</button>`};
+      <button class="buy wide" id="resetBtn" style="background:#F1C0B3;border-color:#C87C64;color:#8C3E28">Start a brand new home</button>`};
 }
 };
 
@@ -4845,6 +4851,7 @@ function bindSheet(){
   if(reset) reset.addEventListener("click",async()=>{
     if(!reset.dataset.armed){ reset.dataset.armed="1"; reset.textContent="Tap again to wipe everything"; return; }
     await Store.set(SAVE_KEY,"");
+    try{ localStorage.removeItem(LEGACY_SAVE_KEY); }catch(_){}
     location.reload();
   });
 }
@@ -5618,7 +5625,7 @@ async function takePhoto(){
   const names=catsIn(r.id).map(c=>c.name).join(", ")||"an empty room";
   g.fillStyle=document.body.classList.contains("night")?"rgba(255,255,255,.9)":"#3F3128";
   g.font="800 16px Nunito, system-ui, sans-serif"; g.textAlign="left";
-  g.fillText("🐾 Kitten Café — "+r.name,14,H+24);
+  g.fillText("🐾 Petopia — "+r.name,14,H+24);
   g.font="600 12px Nunito, system-ui, sans-serif";
   g.fillStyle=document.body.classList.contains("night")?"rgba(255,255,255,.6)":"rgba(63,49,40,.62)";
   g.fillText(names+" · day "+(state.streak||1)+" · "+new Date().toLocaleDateString("en-AU"),14,H+42);
@@ -5627,7 +5634,7 @@ async function takePhoto(){
   document.getElementById("photoOut").classList.add("open");
   document.getElementById("photoSave").onclick=()=>{
     const a=document.createElement("a");
-    a.href=url; a.download="kitten-cafe-"+Date.now()+".png"; a.click();
+    a.href=url; a.download="petopia-"+Date.now()+".png"; a.click();
   };
   confettiRain(45);
 }
@@ -5740,7 +5747,7 @@ async function init(){
   try{
     for(let i=localStorage.length-1;i>=0;i--){
       const k=localStorage.key(i);
-      if(k&&k.startsWith("kittencafe_save_")&&k!==SAVE_KEY) localStorage.removeItem(k);
+      if(k&&k.startsWith("kittencafe_save_")&&k!==LEGACY_SAVE_KEY) localStorage.removeItem(k);   // older slots
     }
   }catch(e){}
   const loaded=await loadGame();
