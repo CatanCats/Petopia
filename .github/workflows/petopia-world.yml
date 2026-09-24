@@ -1,0 +1,65 @@
+# Petopia World: files homes published from the game.
+# The game opens a pre-filled issue ("[world] <name>" + a share code); this
+# checks the code, writes world/rooms/<CODE>.json and world/index.json, and
+# replies with the 6-letter code. "[world-remove]" takes an account's homes down.
+# Everything from the issue reaches the script through env vars, never by
+# pasting it into a shell command.
+name: Petopia World
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: petopia-world
+  cancel-in-progress: false
+
+jobs:
+  file-home:
+    if: startsWith(github.event.issue.title, '[world]') || startsWith(github.event.issue.title, '[world-remove]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Check the code and file the home
+        id: file
+        env:
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_AUTHOR: ${{ github.event.issue.user.login }}
+          RESULT_FILE: ${{ runner.temp }}/result.md
+        run: node world/tools/publish.mjs
+
+      - name: Save it
+        if: steps.file.outputs.changed == 'true'
+        env:
+          SUMMARY: ${{ steps.file.outputs.summary }}
+          BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          git config user.name "petopia-world[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add world
+          git commit -m "World: $SUMMARY"
+          git pull --rebase origin "$BRANCH"
+          git push origin "HEAD:$BRANCH"
+
+      - name: Reply and close
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ github.event.issue.number }}
+          REPO: ${{ github.repository }}
+          RESULT: ${{ runner.temp }}/result.md
+        run: |
+          [ -f "$RESULT" ] || echo "Sorry — something went wrong filing this home. Please try publishing again." > "$RESULT"
+          gh issue comment "$NUMBER" --repo "$REPO" --body-file "$RESULT"
+          gh issue close "$NUMBER" --repo "$REPO"
