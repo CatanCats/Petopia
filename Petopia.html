@@ -452,6 +452,30 @@ input,button,textarea{font-family:inherit;color:inherit;}
 .qRow.done{background:#EDF6E6;}
 .qRow .qi{font-size:20px;width:34px;text-align:center;flex:0 0 auto;}
 .qRow .qn{font-weight:800;font-size:12.5px;}
+/* ── Petopia World ── */
+#coinLayer{position:absolute;inset:0;pointer-events:none;}
+.catCoin{position:absolute;left:0;top:0;width:30px;height:30px;border-radius:50%;pointer-events:auto;cursor:pointer;
+  border:2px solid #C98F1C;background:radial-gradient(circle at 35% 30%,#FFE9A0,#EBB02E);font-size:14px;line-height:26px;padding:0;
+  box-shadow:0 0 0 4px rgba(255,220,120,.35),0 3px 6px rgba(120,80,20,.35);animation:coinGlow 1.6s ease-in-out infinite;}
+@keyframes coinGlow{0%,100%{box-shadow:0 0 0 3px rgba(255,220,120,.25),0 3px 6px rgba(120,80,20,.35)}50%{box-shadow:0 0 0 8px rgba(255,220,120,.45),0 3px 6px rgba(120,80,20,.35)}}
+.visitCard{display:none;background:var(--card);border-radius:var(--r);padding:11px 13px;box-shadow:0 8px 0 var(--shadow);}
+body.visiting .visitCard{display:block;}
+body.visiting .stats, body.visiting .actions, body.visiting #roomBar, body.visiting #decoBtn,
+body.visiting #menuBtn, body.visiting #worldBtn, body.visiting .hint{display:none!important;}
+.vcTop{display:flex;align-items:center;gap:10px;justify-content:space-between;}
+.vcN{font-weight:900;font-size:15px;} .vcS{font-size:11px;font-weight:700;color:var(--ink-soft);margin-top:3px;}
+.vcC{margin-top:8px;font-size:13px;font-weight:800;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+.vcW{color:#9A5B1E;}
+.warnBox{background:#FFF1E4;border:2px solid #F0B98A;border-radius:12px;padding:9px 11px;font-size:12px;font-weight:700;line-height:1.45;margin:6px 0 8px;color:#6B4A30;}
+.codeBox{width:100%;min-height:74px;border-radius:12px;border:2px solid rgba(123,90,60,.2);padding:8px;font:600 11px ui-monospace,Menlo,monospace;
+  color:var(--ink);background:#FFFDF8;resize:vertical;word-break:break-all;box-sizing:border-box;}
+.linkish{text-decoration:underline;cursor:pointer;color:#B0653A;}
+.mv.on{outline:2px solid var(--coral);}
+.lbList{display:flex;flex-direction:column;gap:5px;margin-top:6px;}
+.lbRow{display:flex;align-items:center;gap:8px;background:var(--card);border-radius:12px;padding:7px 10px;box-shadow:0 3px 0 var(--shadow);}
+.lbRow.you{background:#FFF3D9;outline:2px solid rgba(240,160,61,.45);}
+.lbR{width:26px;text-align:center;font-weight:900;font-size:13px;} .lbN{flex:1;font-weight:800;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.lbV{font-weight:900;font-size:12.5px;color:var(--ink-soft);} .lbGo{min-width:64px;padding:5px 8px!important;font-size:11px!important;}
 .pickCard{display:flex;gap:11px;align-items:center;background:linear-gradient(135deg,#FFF3D9,#FFE3EA);border-radius:16px;padding:11px 12px;
   margin-bottom:8px;box-shadow:0 4px 0 var(--shadow);border:2px solid rgba(240,160,61,.35);}
 .pickCard .pcE{font-size:30px;width:40px;text-align:center;}
@@ -500,6 +524,7 @@ input,button,textarea{font-family:inherit;color:inherit;}
     <div class="right-tools">
       <div class="streak" id="streakChip" title="Daily care streak">🔥<span id="streakN">0</span></div>
       <div class="wallet" id="wallet"><span class="coin">✦</span><span id="pts">0</span></div>
+      <button class="icon-btn" id="worldBtn" aria-label="Petopia World — share and visit">🌏</button>
       <button class="icon-btn" id="decoBtn" aria-label="Decorate — drag furniture">🎨</button>
       <button class="icon-btn" id="menuBtn" aria-label="Menu">☰<span class="dot" id="menuDot" style="display:none">!</span></button>
     </div>
@@ -515,6 +540,7 @@ input,button,textarea{font-family:inherit;color:inherit;}
     <canvas id="glFx"></canvas>
     <div class="uiLayer" id="uiLayer">
       <canvas id="playCv"></canvas>
+      <div id="coinLayer"></div>
       <button class="playQuit" id="playQuit">✕ Stop playing</button>
       <div class="nameStack" id="nameStack"></div>
       <div class="timeChip" id="timeChip">☀️ <span id="timeLbl">Morning</span></div>
@@ -533,6 +559,7 @@ input,button,textarea{font-family:inherit;color:inherit;}
 
   <div class="hint" id="hint">Drag the room sideways to explore · tap a cat to pet it 💗</div>
 
+  <div class="visitCard" id="visitCard"></div>
   <div class="stats" id="stats">
     <div class="statshead">
       <span class="who" id="who"><b>Mochi</b></span>
@@ -1654,6 +1681,8 @@ const PALETTES=[
      instead of the nearest-looking existing palette. */
   {k:"classicBed", n:"Classic",    lo:"#B22A5B", hi:"#FFECF3", t:0},
   {k:"classicTray",n:"Classic",    lo:"#2E518D", hi:"#FFF3CB", t:0},
+  /* only bought with cat coins, collected visiting other players' homes */
+  {k:"globe",      n:"Globetrotter",lo:"#5C3C7A", hi:"#FFC48A", t:1},   // a travel-poster sunset: plum to apricot
   {k:"bottle",  n:"Bottlebrush",   lo:"#9A3A3F", hi:"#F0A090", t:1},
   {k:"ocean",   n:"Ocean Deep",    lo:"#2F5B78", hi:"#8FC6DE", t:1},
   {k:"honey",   n:"Honey Oak",     lo:"#8C5A24", hi:"#EFC384", t:1},
@@ -1675,7 +1704,7 @@ const RARITY_MULT=[1,2.1,4.4,9.5];
    fn: functional effect key + base strength (scaled by rarity tier).       */
 const FURNI_DEFS=[
   {s:"sofa",        n:"Chesterfield",   c:"furniture", w:120, base:130, z:"floor", fn:["mood",0.10], p:["oat","gum","terra","dusty","bottle","ocean","midnight","reef","wattle"]},
-  {s:"armchair",    n:"Armchair",       c:"furniture", w:86,  base:88,  z:"floor", fn:["mood",0.07], p:["oat","gum","terra","dusty","drift","honey","lilac","midnight","opal"]},
+  {s:"armchair",    n:"Armchair",       c:"furniture", w:86,  base:88,  z:"floor", fn:["mood",0.07], p:["oat","gum","terra","dusty","drift","honey","lilac","midnight","opal","globe"]},
   {s:"beanbag",     n:"Beanbag",        c:"furniture", w:92,  base:74,  z:"floor", fn:["sleep",0.12], p:["butter","sky","dusty","bottle","lilac","reef","wattle"]},
   {s:"pouffe",      n:"Pouffe",         c:"furniture", w:64,  base:52,  z:"floor", p:["oat","gum","dusty","moss","verdi","opal"]},
   {s:"floorCushion",n:"Floor Cushion",  c:"furniture", w:76,  base:38,  z:"floor", fn:["sleep",0.07], p:["oat","butter","dusty","sky","lilac","reef"]},
@@ -1687,7 +1716,7 @@ const FURNI_DEFS=[
   {s:"milkCrate",   n:"Milk Crate",     c:"furniture", w:64,  base:22,  z:"floor", p:["gum","terra","sky","butter","bottle","ember"]},
   {s:"esky",        n:"Esky",           c:"furniture", w:72,  base:56,  z:"floor", p:["sky","gum","bottle","ocean","ember","wattle"]},
   {s:"divider",     n:"Room Divider",   c:"furniture", w:96,  base:150, z:"floor", p:["oat","honey","moss","midnight","opal"]},
-  {s:"rug",         n:"Round Rug",      c:"rugs",      w:118, base:60,  z:"floor", fn:["mood",0.05], p:["oat","gum","terra","dusty","bottle","lilac","reef","opal"]},
+  {s:"rug",         n:"Round Rug",      c:"rugs",      w:118, base:60,  z:"floor", fn:["mood",0.05], p:["oat","gum","terra","dusty","bottle","lilac","reef","opal","globe"]},
   {s:"runner",      n:"Runner Rug",     c:"rugs",      w:126, base:52,  z:"floor", p:["oat","sky","butter","moss","verdi","wattle"]},
   {s:"floorLamp",   n:"Floor Lamp",     c:"lighting",  w:66,  base:96,  z:"floor", fn:["light",1], p:["oat","butter","drift","honey","midnight","wattle"]},
   {s:"tableLamp",   n:"Table Lamp",     c:"lighting",  w:52,  base:54,  z:"floor", fn:["light",1], p:["butter","dusty","sky","lilac","ember","opal"]},
@@ -1714,7 +1743,7 @@ const FURNI_DEFS=[
   {s:"yarnBall",    n:"Yarn Ball",      c:"toys",      w:46,  base:24,  z:"floor", fn:["play",1], p:["dusty","sky","butter","bottle","lilac","reef","opal"]},
   {s:"cardboardBox",n:"Cardboard Box",  c:"toys",      w:76,  base:18,  z:"floor", fn:["play",1], p:["oat","drift","honey","terra"]},
   {s:"window",      n:"Sash Window",    c:"walls",     w:100, base:150, z:"wall",  fn:["mood",0.05], p:["oat","sky","drift","midnight","wattle"]},
-  {s:"artLandscape",n:"Outback Print",  c:"art",       w:88,  base:88,  z:"wall",  fn:["mood",0.04], p:["oat","terra","honey","ocean","ember","wattle"]},
+  {s:"artLandscape",n:"Outback Print",  c:"art",       w:88,  base:88,  z:"wall",  fn:["mood",0.04], p:["oat","terra","honey","ocean","ember","wattle","globe"]},
   {s:"artAbstract", n:"Abstract Canvas",c:"art",       w:88,  base:96,  z:"wall",  fn:["mood",0.04], p:["sky","dusty","lilac","reef","midnight","opal"]},
   {s:"artCat",      n:"Cat Portrait",   c:"art",       w:84,  base:120, z:"wall",  fn:["mood",0.05], p:["oat","dusty","honey","bottle","midnight","wattle"]},
   {s:"wallClock",   n:"Wall Clock",     c:"art",       w:58,  base:66,  z:"wall",  p:["oat","drift","honey","midnight","verdi","opal"]},
@@ -1897,6 +1926,7 @@ function priceNice(v){ return v<100?Math.round(v/5)*5:v<1000?Math.round(v/10)*10
         season:d.season||null,
         desc:d.fn?FN_DESC[d.fn[0]]:null
       });
+      if(pk==="globe"){ const it=ITEM_BY_ID[`i_${d.s}_${pk}`]; it.cat="world"; it.world=true; it.catPrice=({rug:12,artLandscape:18,armchair:25})[d.s]||20; }
     }
   }
   for(const w of WALLPAPERS) addItem({id:w.id,name:w.n,cat:"walls",kind:"wallpaper",r:w.r,price:w.price,data:w,season:w.season||null});
@@ -2416,7 +2446,9 @@ async function loadGame(){
 }
 function saveGame(){
   clearTimeout(saveTimer);
-  saveTimer=setTimeout(async()=>{ try{ state.lastSeen=now();
+  if(typeof Visit!=="undefined"&&Visit.on) return;
+  // checked again when it fires: a visit started in the meantime must never be saved over your home
+  saveTimer=setTimeout(async()=>{ if(typeof Visit!=="undefined"&&Visit.on) return; try{ state.lastSeen=now();
     await Store.set(SAVE_KEY,JSON.stringify(state,(k,v)=>k.charAt(0)==="_"?undefined:v));
     try{ if(localStorage.getItem(SAVE_KEY)) localStorage.removeItem(LEGACY_SAVE_KEY); }catch(_){} }catch(e){} },700);
 }
@@ -3074,7 +3106,7 @@ function nextMsg(){
   setTimeout(()=>{ el.classList.remove("show"); setTimeout(()=>{ msgBusy=false; nextMsg(); },260); },2100);
 }
 function earnCoins(amount,ignoreCap){
-  if(amount<=0) return 0;
+  if(amount<=0||Visit.on) return 0;
   const t=now();
   if(!state.earnWindowStart||t-state.earnWindowStart>=3600000){ state.earnWindowStart=t; state.earnedThisHour=0; }
   if(ignoreCap){ state.pts+=amount; return amount; }
@@ -3173,7 +3205,7 @@ const ACHIEVEMENTS=[
   {id:"ach_rich",      n:"Flush",             i:"💰", d:"Hold 2,000 coins at once.",              goal:2000,get:s=>s.pts,             rw:{item:"i_orbLamp_opal"}},
 ];
 function checkAchievements(){
-  if(!state) return;
+  if(!state||Visit.on) return;
   for(const a of ACHIEVEMENTS){
     if(state.ach[a.id]) continue;
     let v=0; try{ v=a.get(state)||0; }catch(e){}
@@ -3298,7 +3330,7 @@ function questProgress(q){
   return Math.min(q.goal,q.prog||0);
 }
 function questEvent(kind,d){
-  if(!state||!state.quests) return;
+  if(!state||!state.quests||Visit.on) return;
   for(const q of state.quests){
     const T=QUEST_TYPES[q.t];
     if(!T||T.ev!==kind||q.claimed||q.prog>=q.goal||!T.match(q,d)) continue;
@@ -3315,6 +3347,7 @@ function claimQuest(q){
 }
 const STREAK_REWARD=d=>Math.min(140, 18+d*11);
 function touchStreak(){
+  if(Visit.on) return;
   const t=todayKey();
   if(state.lastCareDay===t) return;
   const y=new Date(Date.now()-86400000);
@@ -4057,6 +4090,7 @@ function frame(ts){
     positionSprites();
     positionFurniHits();
     if(roomNeedsRedraw(ts/1000)) drawRoom(ts/1000);
+    Visit.frame();
     ambientSpawn(dt);
     drawParticles(dt);
     // scroll rail
@@ -4072,7 +4106,7 @@ function frame(ts){
 
 /* ═══════════════════════ 22. STAT TICK ═══════════════════════ */
 function tick(){
-  if(!state) return;
+  if(!state||Visit.on) return;                     // your home waits while you're out visiting
   { const w=weatherNow(); Audio.setRain(w==="storm"?0.09:w==="rain"?0.05:0); }
   const dead=[], away=[], slot=daySlot();
   for(const room of state.rooms){
@@ -4539,6 +4573,57 @@ cat(){
     <div class="movebtns">${roomOpts||`<span class="ds">Only one room so far.</span>`}</div>
     <label class="doorToggle"><input type="checkbox" id="doorChk" ${c.closeDoor?"checked":""}> Keep ${esc(c.name)} in this room</label>`};
 },
+/* ── Petopia World ── */
+world(){
+  ensurePlayer(); World.refresh();
+  const P=state.player, B=BOARDS[World.board];
+  const rows=World.rows().sort((a,b)=>(b.stats[B[2]]||0)-(a.stats[B[2]]||0)||(a.you?-1:1));
+  const youAt=rows.findIndex(r=>r.you);
+  const shown=rows.slice(0,20); if(youAt>=20) shown.push(rows[youAt]);
+  const row=(r)=>{ const i=rows.indexOf(r), can=!r.you&&(r.code||state.world.homes[r.id]), left=can&&state.world.homes[r.id]?coinsLeft(state.world.homes[r.id]):null;
+    return `<div class="lbRow ${r.you?"you":""}"><span class="lbR">${i<3?["🥇","🥈","🥉"][i]:i+1}</span>
+      <span class="lbN">${esc(r.name||"?")}${r.you&&state.player.name?" (you)":""}</span><span class="lbV">${B[0]} ${(r.stats[B[2]]||0).toLocaleString()}</span>
+      ${can?`<button class="buy use lbGo" data-visit="${r.code?esc(r.code):"id:"+esc(r.id)}">Visit${left?` · ${left}🐾`:""}</button>`:"<span class='lbGo'></span>"}</div>`; };
+  const tabs=Object.entries(BOARDS).map(([k,v])=>`<button class="tab ${World.board===k?"active":""}" data-board="${k}">${v[0]} ${v[1]}</button>`).join("");
+  const shop=ITEMS.filter(i=>i.world).map(it=>`<div class="item"><div class="big" data-thumb="${it.id}"></div><div class="info"><div class="nm">${it.name}</div>
+      <div class="ds">Only for cat coins — ${it.desc||"a keepsake from your travels"}</div></div>
+      ${owns(it.id)?`<button class="buy use" disabled>Owned</button>`:`<button class="buy" data-item="${it.id}" ${state.catCoins<it.catPrice?"disabled":""}>🐾 ${it.catPrice}</button>`}</div>`).join("");
+  return {h:`<h2>🌏 Petopia World</h2><p class="sub">${P.name?`You're <b>${esc(P.name)}</b>${P.code?` · your code <b>${esc(P.code)}</b>`:""}`:"Share your home and visit others'."} · 🐾 ${state.catCoins} cat coins</p>`,
+    b:`<div class="movebtns"><button class="buy use" data-opensheet="share">📤 Share my room</button></div>
+      <div class="coltitle">Visit a home</div>
+      <div class="rename-row"><input id="visitIn" placeholder="6-letter code, or paste a share code" autocomplete="off"><button class="buy use" id="visitGo">Visit</button></div>
+      <div class="ds" style="margin:2px 2px 8px;font-size:11px;font-weight:700;color:var(--ink-soft)">Every home you visit hides cat coins 🐾 — collect them once a day per home.</div>
+      <div class="coltitle">Leaderboards</div><div class="tabs">${tabs}</div>
+      ${World.status?`<div class="ds" style="font-size:11px;font-weight:700;color:var(--ink-soft);margin:4px 2px">${esc(World.status)}</div>`:""}
+      <div class="lbList">${shown.map(row).join("")}</div>
+      <div class="ds" style="font-size:11px;font-weight:700;color:var(--ink-soft);margin:6px 2px">${World.index?`Everyone who's published, plus homes you've visited.`:`Homes you've visited. Go online to see everyone who's published.`}</div>
+      <div class="coltitle">Spend cat coins</div>${shop}`};
+},
+/* ── share a room ── */
+share(){
+  ensurePlayer();
+  const P=state.player;
+  if(!P.name||sheetCtx==="rename"){
+    return {h:`<h2>📤 First, pick a name</h2><p class="sub">This is how other players will see you, e.g. <b>cat lover</b>.</p>`,
+      b:`<div class="warnBox">⚠️ Your name is <b>public</b>. Anyone who gets your code sees it, and if you publish your home it's on the leaderboards for everyone. <b>Don't use your real name.</b></div>
+      <div class="rename-row"><input id="nameIn" maxlength="20" placeholder="e.g. cat lover" value="${esc(P.name||"")}"><button class="buy use" id="nameSave">Save</button></div>
+      <div class="ds" id="nameErr" style="color:#C0503A;font-weight:800;font-size:12px;margin:4px 2px"></div>`};
+  }
+  const r=getRoom(Share.room)||activeRoom();
+  if(Share.room!==r.id||(!Share.code&&!Share.busy)){ Share.room=r.id; Share.make(); }
+  const rooms=state.rooms.map(x=>`<button class="mv ${x.id===r.id?"on":""}" data-shareroom="${x.id}">${esc(x.name)}</button>`).join("");
+  return {h:`<h2>📤 Share a room</h2><p class="sub">Sharing as <b>${esc(P.name)}</b> · <span class="linkish" data-opensheet="share" data-ctx="rename">change name</span></p>`,
+    b:`<div class="coltitle">Which room?</div><div class="movebtns">${rooms}</div>
+    <div class="warnBox">⚠️ <b>Anyone with this code can see this room</b> — its furniture, the cats who live here, their names, and your name <b>${esc(P.name)}</b>. <b>If you publish it, it's public:</b> anyone can visit it and it appears on the leaderboards.</div>
+    <div class="coltitle">Send it to a friend</div>
+    <textarea id="shareCode" class="codeBox" readonly>${Share.busy?"Making your code…":esc(Share.code)}</textarea>
+    <div class="movebtns"><button class="buy use" id="shareCopy" ${Share.code?"":"disabled"}>📋 Copy code</button>${navigator.share?`<button class="buy" id="shareSend" ${Share.code?"":"disabled"}>📨 Send</button>`:""}</div>
+    <div class="ds" style="font-size:11px;font-weight:700;color:var(--ink-soft);margin:4px 2px 10px">Your friend opens 🌏 → Visit a home, pastes it, and drops by. The code is a snapshot: share again after you redecorate.</div>
+    <div class="coltitle">Or publish it to Petopia World</div>
+    <div class="ds" style="font-size:12px;font-weight:700;color:var(--ink-soft);margin:0 2px 6px">You get a short 6-letter code anyone can type, and a place on the public leaderboards. Opens GitHub (free account needed) — press <b>Submit</b>, and within a minute or two the Petopia robot replies with your code.</div>
+    <div class="movebtns"><button class="buy use" id="sharePublish" ${Share.code?"":"disabled"}>🌏 Publish on GitHub</button></div>
+    <div class="rename-row"><input id="myCode" maxlength="6" placeholder="Got your code? Type it here" value="${esc(P.code||"")}"><button class="buy" id="myCodeSave">Save</button></div>`};
+},
 /* ── tricks ── */
 tricks(){
   const c=selectedCat(), trait=traitOf(c);
@@ -4804,7 +4889,24 @@ function bindSheet(){
   on("[data-theme]",e=>applyThemePreset(e.currentTarget.dataset.theme));
   on("[data-move]",e=>{ const [c,r]=e.currentTarget.dataset.move.split("|"); moveCat(c,r); });
   on("[data-trick]",e=>doTrick(selectedCat(),e.currentTarget.dataset.trick));
-  on("[data-opensheet]",e=>openSheet(e.currentTarget.dataset.opensheet));
+  on("[data-opensheet]",e=>openSheet(e.currentTarget.dataset.opensheet,null,e.currentTarget.dataset.ctx||null));
+  on("[data-board]",e=>{ World.board=e.currentTarget.dataset.board; refreshSheet(); });
+  on("[data-visit]",e=>{ const v=e.currentTarget.dataset.visit;
+    if(v.startsWith("id:")){ const h=state.world.homes[v.slice(3)]; if(h) Visit.start(h); } else visitFromText(v); });
+  on("[data-shareroom]",e=>{ Share.room=e.currentTarget.dataset.shareroom; Share.code=""; refreshSheet(); });
+  const $=id=>document.getElementById(id);
+  if($("visitGo")) $("visitGo").onclick=()=>visitFromText($("visitIn").value);
+  if($("visitIn")) $("visitIn").onkeydown=e=>{ if(e.key==="Enter") visitFromText($("visitIn").value); };
+  if($("nameSave")) $("nameSave").onclick=()=>{
+    const n=$("nameIn").value.trim().replace(/\s+/g," "), bad=nameProblem(n);
+    if(bad){ $("nameErr").textContent=bad; return; }
+    state.player.name=n; saveGame(); Audio.sfx("unlock"); openSheet("share"); };
+  if($("shareCopy")) $("shareCopy").onclick=async()=>{ try{ await navigator.clipboard.writeText(Share.code); toast("Code copied — paste it to a friend 📋"); }
+    catch(e){ const t=$("shareCode"); t.focus(); t.select(); toast("Select the code and copy it"); } };
+  if($("shareSend")) $("shareSend").onclick=()=>navigator.share({title:"My Petopia home",text:`Come and visit my Petopia home! Open 🌏 → Visit a home and paste this:\n${Share.code}`}).catch(()=>{});
+  if($("sharePublish")) $("sharePublish").onclick=()=>{ window.open(publishURL(state.player.name,Share.code),"_blank","noopener"); };
+  if($("myCodeSave")) $("myCodeSave").onclick=()=>{ const c=$("myCode").value.toUpperCase().replace(/[^A-Z0-9]/g,"");
+    if(c.length!==6){ toast("Codes are 6 letters, like KTZ4QA"); return; } state.player.code=c; saveGame(); toast(`Saved — your home is ${c} 🌏`); refreshSheet(); };
   on("[data-unwear]",e=>{ const c=selectedCat(); delete c.wear[e.currentTarget.dataset.unwear];
     c._sig=null; Audio.sfx("click"); syncSprites(); saveGame(); refreshSheet(); });
   on("[data-quest]",e=>claimQuest(state.quests[+e.currentTarget.dataset.quest]));
@@ -4860,6 +4962,12 @@ function findPlaced(u){ return activeRoom().placed.find(p=>p.u===u); }
 /* buying / using a shop card */
 function onItemTap(id){
   const it=ITEM_BY_ID[id]; if(!it) return;
+  if(!owns(id)&&it.world){
+    if((state.catCoins||0)<it.catPrice){ toast(`You need ${it.catPrice} cat coins 🐾 — find them visiting other homes`); return; }
+    state.catCoins-=it.catPrice; state.owned[id]=1;
+    Audio.sfx("cash"); confettiRain(50); toast(`${it.name} is yours — find it in storage 🌏`);
+    renderHUD(); saveGame(); refreshSheet(); return;
+  }
   if(!owns(id)){
     if(it.kind==="bundle"){
       if(!spend(it.price)) return;
@@ -5594,6 +5702,259 @@ function bindPlay(){
   addEventListener("resize",()=>{ if(Play.on) Play.resize(); });
 }
 
+/* ═══════════════════════ PETOPIA WORLD ═══════════════════════
+   Share a room with a code, visit other players' homes, collect cat coins
+   there, and see the leaderboards.
+
+   • A share code holds the whole room (compressed): it works with no
+     server at all, so it's sent by message rather than typed.
+   • Published homes live in this GitHub repo (world/index.json and
+     world/rooms/<CODE>.json). Anyone can read them, from any copy of the
+     game; that's what the 6-letter codes and the global board use.
+     Writing needs a GitHub account: "Publish" opens a pre-filled issue,
+     and a GitHub Action (.github/workflows/petopia-world.yml) checks the
+     code, files the home and replies with its 6-letter code.
+   Everything that comes in from a code is checked by cleanHome() before
+   the game touches it.                                                  */
+const WORLD_REPO="CatanCats/Petopia";
+const WORLD_RAW=`https://raw.githubusercontent.com/${WORLD_REPO}/main/world`;
+const CODE_ALPHABET="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const NAME_BLOCK=["fuck","shit","cunt","bitch","nigg","fag","slut","whore","rape","nazi","hitler","penis","vagina","dick","cock","pussy","porn","sex","kill","admin","moderator","petopia"];
+function nameProblem(n){
+  n=(n||"").trim().replace(/\s+/g," ");
+  if(n.length<2||n.length>20) return "Use 2 to 20 letters.";
+  if(!/^[A-Za-z0-9][A-Za-z0-9 _.'-]*$/.test(n)) return "Letters, numbers, spaces and - _ . ' only.";
+  const flat=n.toLowerCase().replace(/0/g,"o").replace(/1/g,"i").replace(/3/g,"e").replace(/4/g,"a").replace(/5/g,"s").replace(/[^a-z]/g,"");
+  if(NAME_BLOCK.some(w=>flat.includes(w))) return "Let's pick a friendlier name.";
+  return null;
+}
+function ensurePlayer(){
+  if(!state) return;
+  if(!state.player) state.player={id:Array.from({length:12},()=>"abcdefghijklmnopqrstuvwxyz0123456789"[Math.floor(Math.random()*36)]).join(""),name:null,code:null};
+  state.world=state.world||{};
+  state.world.homes=state.world.homes||{};          // homes you've visited or been sent: id → home
+  state.world.found=state.world.found||{};          // cat coins found: id → {day, n}
+  if(state.catCoins===undefined) state.catCoins=0;
+  state.stats.catCoins=state.stats.catCoins||0;     // lifetime, for the leaderboard
+}
+const b64url=u8=>{ let s=""; for(let i=0;i<u8.length;i+=0x8000) s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));
+  return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); };
+const unb64url=t=>{ t=t.replace(/-/g,"+").replace(/_/g,"/"); while(t.length%4) t+="=";
+  const s=atob(t), u=new Uint8Array(s.length); for(let i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return u; };
+/* one room, the cats who live there, and the headline numbers for the boards */
+function homeSnapshot(room){
+  const P=state.player;
+  const cats=residentsOf(room.id).filter(c=>!c.away).slice(0,12);
+  return {v:1, id:P.id, name:P.name, at:Date.now(),
+    room:{k:room.kind, n:String(room.name).slice(0,24), t:room.theme, w:room.wp, f:room.fl,
+      p:room.placed.slice(0,80).map(q=>[q.item,+q.x.toFixed(3),+q.y.toFixed(3),q.flip<0?-1:1])},
+    cats:cats.map(c=>[c.name,c.breed,c.sex==="male"?"m":"f",Math.round(c.growth),c.trait,Object.values(c.wear||{}),c.face<0?-1:1]),
+    s:{c:state.cats.length, r:state.rooms.length, cc:state.stats.catCoins||0, st:state.streak||0, a:Object.keys(state.ach||{}).length}};
+}
+async function encodeHome(obj){
+  const bytes=new TextEncoder().encode(JSON.stringify(obj));
+  if(typeof CompressionStream==="function"){
+    const z=new Blob([bytes]).stream().pipeThrough(new CompressionStream("deflate-raw"));
+    return "PET1."+b64url(new Uint8Array(await new Response(z).arrayBuffer()));
+  }
+  return "PET0."+b64url(bytes);
+}
+/* accepts a code on its own or anywhere inside a pasted message */
+async function decodeHome(text){
+  // find the code as written: squashing spaces first would glue "see you there" onto it
+  const m=/PET([01])\.([A-Za-z0-9_-]{8,20000})/.exec(String(text||""));
+  if(!m) throw new Error("That doesn't look like a Petopia code.");
+  let bytes=unb64url(m[2]);
+  if(m[1]==="1"){
+    if(typeof DecompressionStream!=="function") throw new Error("This browser is too old to open share codes.");
+    const z=new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+    bytes=new Uint8Array(await new Response(z).arrayBuffer());
+  }
+  if(bytes.length>200000) throw new Error("That code is far too big.");
+  let o; try{ o=JSON.parse(new TextDecoder().decode(bytes)); }catch(e){ throw new Error("That code is damaged — ask for it again."); }
+  return cleanHome(o);
+}
+/* the only way a home from outside gets in: every field checked and trimmed */
+function cleanHome(o){
+  const str=(v,n)=>String(v==null?"":v).replace(/[\u0000-\u001f<>]/g,"").slice(0,n).trim();
+  const num=(v,max)=>clamp(Math.floor(+v||0),0,max);
+  if(!o||o.v!==1) throw new Error("That code is from a different version of Petopia.");
+  const id=String(o.id||""); if(!/^[a-z0-9]{6,24}$/.test(id)) throw new Error("That code is damaged — ask for it again.");
+  const name=str(o.name,20); if(nameProblem(name)) throw new Error("That home's name isn't allowed.");
+  const R=o.room||{}, kind=ROOM_KINDS[R.k]?R.k:"starter";
+  const room={kind, name:str(R.n,24)||ROOM_KINDS[kind].label,
+    theme:ROOM_THEMES.some(t=>t.id===R.t)?R.t:"cottage",
+    wp:ITEM_BY_ID[R.w]&&ITEM_BY_ID[R.w].kind==="wallpaper"?R.w:"w_cream",
+    fl:ITEM_BY_ID[R.f]&&ITEM_BY_ID[R.f].kind==="floor"?R.f:"f_oak",
+    placed:(Array.isArray(R.p)?R.p:[]).slice(0,80).filter(a=>Array.isArray(a)&&ITEM_BY_ID[a[0]]&&ITEM_BY_ID[a[0]].kind==="furni")
+      .map(a=>({item:a[0], x:clamp(+a[1]||0.5,0.02,0.98), y:clamp(+a[2]||0.8,0.04,0.97), flip:a[3]<0?-1:1}))};
+  const cats=(Array.isArray(o.cats)?o.cats:[]).slice(0,12).filter(a=>Array.isArray(a)&&BREEDS[a[1]]).map(a=>({
+    name:str(a[0],14)||"Kitty", breed:a[1], sex:a[2]==="m"?"male":"female", growth:num(a[3],99999),
+    trait:TRAITS[a[4]]?a[4]:"none", wear:(Array.isArray(a[5])?a[5]:[]).filter(w=>COSTUMES.some(x=>x.id===w)).slice(0,5), face:a[6]<0?-1:1}));
+  const S=o.s||{};
+  return {id, name, at:num(o.at,9e15), room, cats,
+    stats:{cats:num(S.c,999), rooms:num(S.r,50), catCoins:num(S.cc,1e7), streak:num(S.st,99999), ach:num(S.a,999)}};
+}
+/* the published world, fetched from GitHub; the last good copy is kept for offline */
+const World={
+  index:null, fetchedAt:0, status:"", board:"cats", busy:false,
+  async refresh(force){
+    if(this.busy||(!force&&Date.now()-this.fetchedAt<120000)) return;
+    this.busy=true; this.status="Checking Petopia World…";
+    try{
+      const r=await fetch(`${WORLD_RAW}/index.json?t=${Math.floor(Date.now()/60000)}`,{cache:"no-store"});
+      if(r.status===404){ this.index={homes:[]}; this.fetchedAt=Date.now(); this.status="No one has published a home yet — be the first!"; }
+      else {
+        if(!r.ok) throw new Error(r.status);
+        const j=await r.json();
+        this.index=Array.isArray(j.homes)?j:{homes:[]}; this.fetchedAt=Date.now(); this.status="";
+      }
+      if(state){ state.world.lastIndex={at:Date.now(),homes:this.index.homes.slice(0,200)}; saveGame(); }
+    }catch(e){
+      this.status="Couldn't reach Petopia World — showing homes you've visited.";
+      if(state&&state.world.lastIndex&&!this.index) this.index=state.world.lastIndex;
+    }
+    this.busy=false;
+    if(currentSheet==="world") refreshSheet();
+  },
+  async fetchCode(code){
+    code=String(code||"").toUpperCase().replace(/[^A-Z0-9]/g,"");
+    if(code.length!==6) throw new Error("Codes are 6 letters, like KTZ4QA.");
+    let r; try{ r=await fetch(`${WORLD_RAW}/rooms/${code}.json`,{cache:"no-store"}); }catch(e){ throw new Error("Couldn't reach Petopia World — are you online?"); }
+    if(r.status===404) throw new Error(`No home with code ${code} (new homes can take a few minutes to appear).`);
+    if(!r.ok) throw new Error("Petopia World isn't answering — try again soon.");
+    const j=await r.json(); const home=cleanHome(j.home); home.code=code; return home;
+  },
+  /* one row per player: you (live), the published board, and homes you've visited */
+  rows(){
+    const P=state.player, map={};
+    const put=h=>{ if(!h||!h.id) return; const old=map[h.id]; if(!old||(h.at||0)>=(old.at||0)) map[h.id]={...old,...h}; };
+    for(const h of (this.index&&this.index.homes)||[]) put({id:h.id,name:h.name,code:h.code,at:h.at,stats:{cats:h.cats,catCoins:h.catCoins,rooms:h.rooms,streak:h.streak,ach:h.ach},published:true});
+    for(const id in state.world.homes){ const h=state.world.homes[id]; put({id,name:h.name,code:h.code,at:h.at,stats:h.stats,known:true}); }
+    map[P.id]={id:P.id,name:P.name||"You",code:P.code,at:Date.now(),you:true,
+      stats:{cats:state.cats.length,catCoins:state.stats.catCoins||0,rooms:state.rooms.length,streak:state.streak||0,ach:Object.keys(state.ach||{}).length}};
+    return Object.values(map);
+  }
+};
+const BOARDS={cats:["🐱","Most cats","cats"], coins:["🐾","Most cat coins","catCoins"], rooms:["🚪","Most rooms","rooms"], streak:["🔥","Longest streak","streak"]};
+function homeKey(h){ return h.id; }
+function coinsLeft(h){
+  const f=state.world.found[homeKey(h)], total=3+Math.min(4,Math.floor((h.cats||[]).length/2));
+  return f&&f.day===todayKey()?Math.max(0,total-f.n):total;
+}
+/* ── VISITING SOMEONE'S HOME ───────────────────────────────────────────
+   Swaps in a throwaway copy of the game holding just their room and cats,
+   pauses your own home (no ticks, no saves, no rewards but cat coins),
+   and swaps you back on Leave. You can pet their cats and hunt for the
+   cat coins hidden around the room — once a day per home.             */
+const Visit={
+  on:false, home:null, real:null, coins:[], layer:null,
+  start(home){
+    if(this.on) this.leave(true);
+    if(Play.on) Play.quit(); if(MG.cur) MG.close(); closeSheet(); if(Deco.on) Deco.toggle(false);
+    const real=state; ensurePlayer();
+    // remember it: revisit offline, and it counts on your boards
+    real.world.homes[home.id]={...(real.world.homes[home.id]||{}),...home,seen:Date.now()};
+    const ids=Object.keys(real.world.homes); if(ids.length>60){ ids.sort((a,b)=>(real.world.homes[a].seen||0)-(real.world.homes[b].seen||0)); delete real.world.homes[ids[0]]; }
+    const vs=JSON.parse(JSON.stringify(real));
+    const room={id:"visit_"+home.id, kind:home.room.kind, name:home.room.name, couch:100, theme:home.room.theme, wp:home.room.wp, fl:home.room.fl,
+      placed:home.room.placed.map(q=>({u:uid("p"),...q})), poops:[], litterClean:{}, feeders:{}};
+    for(const q of room.placed){ const it=ITEM_BY_ID[q.item]; if(it.fn&&it.fn.k==="litter") room.litterClean[q.u]=100; }
+    const cats=home.cats.map(k=>{ const c=newCat(k.breed,{roomId:room.id,name:k.name,sex:k.sex,growth:k.growth,trait:k.trait});
+      c.wear={}; for(const w of k.wear){ const cos=COSTUMES.find(x=>x.id===w); if(cos) c.wear[cos.slot]=w; }
+      Object.assign(c,{face:k.face,tummy:88,mood:84,energy:86,hygiene:90,rubAt:9e15,lastPottyAt:now(),lastPlayAt:now(),bond:0});
+      return c; });
+    Object.assign(vs,{rooms:[room],cats,activeRoom:room.id,selected:cats[0]?cats[0].id:null,breeding:null,shelter:[]});
+    this.real=real; this.home=home; this.on=true;
+    state=vs;
+    for(const k in spriteEls){ spriteEls[k].remove(); delete spriteEls[k]; }
+    for(const k in furniHitEls){ furniHitEls[k].remove(); delete furniHitEls[k]; }
+    View.camX=View.camTarget=0; View.recalcWorld(); markRoomDirty(); applyTheme();
+    document.body.classList.add("visiting");
+    this.spawnCoins();
+    renderAll(); syncSprites(); this.card();
+    Audio.sfx("whoosh");
+    toast(this.coins.length?`Welcome to ${home.name}'s home! 🐾 ${this.coins.length} cat coins are hidden here`:`Welcome to ${home.name}'s home! You've found all today's cat coins here`);
+  },
+  spawnCoins(){
+    const layer=document.getElementById("coinLayer"); layer.innerHTML=""; this.coins=[];
+    const n=coinsLeft(this.home);
+    for(let i=0;i<n;i++){
+      const el=document.createElement("button"); el.className="catCoin"; el.setAttribute("aria-label","Cat coin"); el.textContent="🐾";
+      // half tucked by furniture, half out on the floor
+      const f=this.home.room.placed.filter(q=>ITEM_BY_ID[q.item].zone!=="wall");
+      const near=f.length&&i%2===0?pick(f):null;
+      const coin={el, x:clamp(near?near.x+rnd(-0.05,0.05):rnd(0.06,0.94),0.04,0.96), y:clamp(near?Math.max(near.y,CAT_BAND[0])+0.01:rnd(CAT_BAND[0],CAT_BAND[1]),CAT_BAND[0],0.95), bob:Math.random()*6};
+      el.addEventListener("click",()=>this.collect(coin));
+      layer.appendChild(el); this.coins.push(coin);
+    }
+  },
+  collect(coin){
+    if(!this.on||!this.coins.includes(coin)) return;
+    const R=this.real, k=homeKey(this.home), f=R.world.found[k];
+    R.world.found[k]={day:todayKey(), n:(f&&f.day===todayKey()?f.n:0)+1};
+    R.catCoins=(R.catCoins||0)+1; R.stats.catCoins=(R.stats.catCoins||0)+1;
+    const r=coin.el.getBoundingClientRect(), st=View.stage.getBoundingClientRect();
+    burst("play",r.left+r.width/2-st.left,r.top+r.height/2-st.top,{n:10,shape:"star",colours:[[1,.85,.4],[1,.95,.7]],spMax:110,lifeMax:0.8});
+    coin.el.remove(); this.coins=this.coins.filter(x=>x!==coin);
+    Audio.sfx("coin");
+    if(!this.coins.length) toast(`All the cat coins found! You have ${R.catCoins} 🐾`);
+    this.card();
+  },
+  frame(){
+    if(!this.on) return;
+    const t=performance.now()/1000;
+    for(const c of this.coins){
+      const x=c.x*View.worldW-View.camX, y=c.y*View.h;
+      c.el.style.transform=`translate(${x-15}px,${y-30-Math.abs(Math.sin(t*2+c.bob))*5}px)`;
+      c.el.style.display=(x<-30||x>View.w+30)?"none":"";
+    }
+  },
+  card(){
+    const h=this.home, el=document.getElementById("visitCard"); if(!el||!h) return;
+    const left=this.coins.length, R=this.real;
+    el.innerHTML=`<div class="vcTop"><div><div class="vcN">🏠 ${esc(h.name)}'s ${esc(h.room.name)}</div>
+      <div class="vcS">${h.cats.length} cat${h.cats.length===1?"":"s"} here · ${h.stats.cats} in their home · 🔥 ${h.stats.streak}-day streak</div></div>
+      <button class="buy use" id="visitLeave">Go home</button></div>
+      <div class="vcC"><span>${left?`🐾 <b>${left}</b> cat coin${left===1?"":"s"} hidden in this room — tap them!`:`🐾 You've found every cat coin here today — come back tomorrow.`}</span>
+      <span class="vcW">You have ${R.catCoins} 🐾</span></div>
+      <div class="vcS">Tap their cats to say hello. Nothing here changes their home.</div>`;
+    el.querySelector("#visitLeave").onclick=()=>this.leave();
+  },
+  leave(quiet){
+    if(!this.on) return;
+    document.getElementById("coinLayer").innerHTML=""; this.coins=[];
+    state=this.real; this.on=false; this.real=null; this.home=null;
+    for(const k in spriteEls){ spriteEls[k].remove(); delete spriteEls[k]; }
+    for(const k in furniHitEls){ furniHitEls[k].remove(); delete furniHitEls[k]; }
+    document.body.classList.remove("visiting");
+    View.camX=View.camTarget=0; View.recalcWorld(); markRoomDirty(); applyTheme();
+    renderAll(); syncSprites(); saveGame();
+    if(!quiet) openSheet("world");
+  }
+};
+/* publishing: a pre-filled GitHub issue the Petopia robot picks up */
+function publishURL(name,code){
+  const body=`This is my Petopia home — please add it to Petopia World!\n\n${code}\n\n`+
+    `(Sent from Petopia. The Petopia robot checks the code, adds the home and replies with a 6-letter code. Published homes are public: anyone can see them and they appear on the leaderboards.)`;
+  return `https://github.com/${WORLD_REPO}/issues/new?title=${encodeURIComponent("[world] "+name)}&body=${encodeURIComponent(body)}`;
+}
+const Share={ room:null, code:"", busy:false,
+  async make(){
+    const r=getRoom(this.room)||activeRoom(); this.room=r.id; this.busy=true; this.code="";
+    try{ this.code=await encodeHome(homeSnapshot(r)); }catch(e){ this.code=""; toast("Couldn't make a code: "+e.message); }
+    this.busy=false; if(currentSheet==="share") refreshSheet();
+  }
+};
+async function visitFromText(text){
+  text=String(text||"").trim();
+  try{
+    const home=/PET[01]\./.test(text)?await decodeHome(text):await World.fetchCode(text);
+    if(home.id===state.player.id){ toast("That's your own home! 🏠"); return; }
+    Visit.start(home);
+  }catch(e){ toast(e.message); }
+}
+
 /* ═══════════════════════ 28. PHOTO MODE ═══════════════════════ */
 async function takePhoto(){
   toast("Say cheese… 📸");
@@ -5645,6 +6006,7 @@ function bindUI(){
     b.addEventListener("click",()=>openSheet(b.dataset.sheet)));
   document.getElementById("sleepBtn").addEventListener("click",toggleSleep);
   document.getElementById("menuBtn").addEventListener("click",()=>openSheet("menu"));
+  document.getElementById("worldBtn").addEventListener("click",()=>openSheet("world"));
   document.getElementById("timeChip").addEventListener("click",()=>toast(weatherBlurb()));
   document.getElementById("decoBtn").addEventListener("click",()=>{
     closeSheet(); Deco.toggle();
@@ -5753,6 +6115,7 @@ async function init(){
   const loaded=await loadGame();
   state=loaded?migrate(loaded):null;
   if(!state) state=freshState();
+  ensurePlayer();
   ensureQuests();
   applyOfflineDecay();
   state.lastSeen=now();
