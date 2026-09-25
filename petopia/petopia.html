@@ -5719,13 +5719,13 @@ function bindPlay(){
 const WORLD_REPO="CatanCats/Petopia";
 const WORLD_RAW=`https://raw.githubusercontent.com/${WORLD_REPO}/main/world`;
 const CODE_ALPHABET="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-const NAME_BLOCK=["fuck","shit","cunt","bitch","nigg","fag","slut","whore","rape","nazi","hitler","penis","vagina","dick","cock","pussy","porn","sex","kill","admin","moderator","petopia"];
+const NAME_BLOCK=["nigger","rape","nazi","hitler"];
 function nameProblem(n){
   n=(n||"").trim().replace(/\s+/g," ");
   if(n.length<2||n.length>20) return "Use 2 to 20 letters.";
   if(!/^[A-Za-z0-9][A-Za-z0-9 _.'-]*$/.test(n)) return "Letters, numbers, spaces and - _ . ' only.";
   const flat=n.toLowerCase().replace(/0/g,"o").replace(/1/g,"i").replace(/3/g,"e").replace(/4/g,"a").replace(/5/g,"s").replace(/[^a-z]/g,"");
-  if(NAME_BLOCK.some(w=>flat.includes(w))) return "Let's pick a friendlier name.";
+  if(NAME_BLOCK.some(w=>flat.includes(w))) return "Statement/s in selected name was blocked.";
   return null;
 }
 function ensurePlayer(){
