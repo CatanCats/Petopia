@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Petopia 🐾 Free cosy cat care game in your browser</title>
+<meta name="description" content="Petopia is a free, cosy cat care game that runs in your browser. Raise kittens into cats, feed and play with them, teach tricks, decorate their rooms, weather the seasons and visit friends' homes. No download, works offline.">
+<meta name="keywords" content="cat game, virtual pet, pet simulator, kitten game, cosy game, cozy game, browser game, html5 game, tamagotchi, cat cafe, free game, offline game">
+<meta name="theme-color" content="#FBF3E7">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Petopia">
+<meta property="og:title" content="Petopia — a cosy cat care game in your browser">
+<meta property="og:description" content="Raise kittens into cats, play with them in their room, teach tricks and visit friends' homes. Free, no download, works offline.">
+<meta property="og:image" content="https://raw.githubusercontent.com/CatanCats/Petopia/main/media/social-preview.png">
+<meta property="og:image:width" content="1280"><meta property="og:image:height" content="640">
+<meta property="og:image:alt" content="Petopia: two phone screens showing cats in a cosy room">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐾</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"VideoGame","name":"Petopia",
+ "description":"A free, cosy cat care game that runs in your browser: raise kittens into cats, play with them, teach tricks, decorate their rooms and visit friends' homes.",
+ "genre":["Virtual pet","Simulation","Casual"],"gamePlatform":["Web browser"],"playMode":"SinglePlayer",
+ "applicationCategory":"Game","operatingSystem":"Any","isAccessibleForFree":true,
+ "offers":{"@type":"Offer","price":"0","priceCurrency":"AUD"},
+ "image":"https://raw.githubusercontent.com/CatanCats/Petopia/main/media/social-preview.png",
+ "license":"https://creativecommons.org/licenses/by-nc-sa/4.0/","author":{"@type":"Person","name":"Catan"}}
+</script>
+<style>
+:root{--bg:#FBF3E7;--card:#FFFDF8;--ink:#4A3628;--soft:#8A6E5A;--coral:#E9795B;--coral-d:#C45F44;--mint:#7CC4A8;--shadow:rgba(123,90,60,.14);}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 15% 0,#FDE9D6 0,var(--bg) 40%,#F8E6E8 100%);color:var(--ink);
+  font-family:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.55}
+h1,h2,h3{font-family:"Fredoka","Nunito",system-ui,sans-serif;line-height:1.1;margin:0}
+a{color:var(--coral-d)}
+.wrap{max-width:1040px;margin:0 auto;padding:0 20px}
+header.hero{display:grid;grid-template-columns:1.05fr .95fr;gap:36px;align-items:center;padding:56px 0 36px}
+.paw{font-size:46px}
+h1{font-size:clamp(52px,9vw,92px);letter-spacing:-1.5px;margin:4px 0 8px}
+.lede{font-size:clamp(19px,2.6vw,24px);font-weight:800;color:#8A5A3A;margin:0 0 18px}
+.sub{font-size:17px;color:var(--soft);font-weight:700;margin:0 0 26px}
+.btns{display:flex;gap:12px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:8px;font:800 18px "Nunito",system-ui,sans-serif;text-decoration:none;border-radius:999px;padding:14px 26px}
+.btn.play{background:var(--coral);color:#fff;box-shadow:0 5px 0 var(--coral-d)}
+.btn.play:hover{transform:translateY(-1px)}
+.btn.alt{background:var(--card);color:var(--ink);box-shadow:0 5px 0 var(--shadow)}
+.note{font-size:13px;color:var(--soft);font-weight:700;margin-top:14px}
+.phones{position:relative;height:520px}
+.phones img{position:absolute;width:245px;border-radius:30px;box-shadow:0 22px 48px rgba(90,60,40,.26),0 0 0 8px #fff}
+.phones .a{left:6%;top:0;transform:rotate(-5deg)} .phones .b{right:4%;top:44px;transform:rotate(4deg)}
+section{padding:34px 0}
+h2{font-size:34px;margin-bottom:18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.card{background:var(--card);border-radius:20px;padding:18px 20px;box-shadow:0 6px 0 var(--shadow)}
+.card h3{font-size:21px;margin-bottom:6px}
+.card p{margin:0;color:var(--soft);font-weight:700;font-size:15px}
+.shots{display:flex;gap:16px;overflow-x:auto;padding:6px 4px 18px;scroll-snap-type:x mandatory}
+.shots figure{margin:0;flex:0 0 220px;scroll-snap-align:start}
+.shots img{width:100%;border-radius:22px;box-shadow:0 10px 26px rgba(90,60,40,.2)}
+.shots figcaption{font-weight:800;font-size:14px;text-align:center;margin-top:8px;color:var(--soft)}
+ol.steps{padding-left:22px;font-weight:700} ol.steps li{margin:6px 0}
+footer{padding:30px 0 50px;color:var(--soft);font-size:14px;font-weight:700;text-align:center}
+@media (max-width:760px){
+  header.hero{grid-template-columns:1fr;padding-top:34px}
+  .phones{height:420px} .phones img{width:200px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="hero">
+  <div>
+    <div class="paw">🐾</div>
+    <h1>Petopia</h1>
+    <p class="lede">A cosy cat care game that runs in your browser.</p>
+    <p class="sub">Raise kittens into cats, play with them in their room, teach them tricks, decorate their home and visit your friends'. Free, no download, and it works offline.</p>
+    <div class="btns">
+      <a class="btn play" href="Petopia.html">▶ Play now</a>
+      <a class="btn alt" href="https://github.com/CatanCats/Petopia/archive/refs/heads/main.zip">⬇ Download</a>
+      <a class="btn alt" href="https://github.com/CatanCats/Petopia">★ GitHub</a>
+    </div>
+    <p class="note">Works on phones, tablets and computers · your save stays in your browser</p>
+  </div>
+  <div class="phones" aria-hidden="true">
+    <img class="a" src="media/home.png" alt="">
+    <img class="b" src="media/laser.png" alt="">
+  </div>
+</header>
+
+<section>
+  <h2>What you do</h2>
+  <div class="grid">
+    <div class="card"><h3>🐱 Raise your cats</h3><p>Feed, pat and clean up after them, and watch kittens grow into cats. Tap any need to see exactly why it's going up or down.</p></div>
+    <div class="card"><h3>🎾 Play together</h3><p>Chase a laser dot across your own floor, time a leap at a swinging feather, or head out fishing at the rockpool.</p></div>
+    <div class="card"><h3>🎓 Teach tricks</h3><p>Sit, High Five, Roll Over, Speak and Dance, and every one has a real job to do.</p></div>
+    <div class="card"><h3>🛋️ Make a home</h3><p>56 kinds of furniture in 21 colourways, room styles, and 30 costumes. Lamps, beds and scratching posts all make a difference.</p></div>
+    <div class="card"><h3>🌦️ Live with the seasons</h3><p>Aussie weather through your windows: sunbeams, rain, summer storms and the odd snowy day. Your cats feel all of it.</p></div>
+    <div class="card"><h3>🌏 Visit friends</h3><p>Share your room with a code, visit other players' homes, collect cat coins, and climb the leaderboards.</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>A look inside</h2>
+  <div class="shots">
+    <figure><img src="media/home.png" alt="A furnished room with three cats" loading="lazy"><figcaption>Your home</figcaption></figure>
+    <figure><img src="media/laser.png" alt="A cat chasing a laser dot across the floor" loading="lazy"><figcaption>Laser Dash, in the room</figcaption></figure>
+    <figure><img src="media/why.png" alt="The panel explaining why mood is changing" loading="lazy"><figcaption>See why stats change</figcaption></figure>
+    <figure><img src="media/rain.png" alt="Rain on the window" loading="lazy"><figcaption>Weather</figcaption></figure>
+    <figure><img src="media/play.png" alt="The Play panel suggesting a game" loading="lazy"><figcaption>What your cat wants</figcaption></figure>
+    <figure><img src="media/world.png" alt="Petopia World leaderboards" loading="lazy"><figcaption>Petopia World</figcaption></figure>
+  </div>
+</section>
+
+<section>
+  <h2>Play offline</h2>
+  <ol class="steps">
+    <li>Press <b>Download</b> and unzip it.</li>
+    <li>Open <b>Petopia.html</b> in any modern browser.</li>
+    <li>That's it. No install and no account needed.</li>
+  </ol>
+</section>
+
+<footer>
+  Petopia · made by Catan · <a href="https://github.com/CatanCats/Petopia/blob/main/LICENSE">CC BY-NC-SA 4.0</a> ·
+  <a href="https://github.com/CatanCats/Petopia#readme">How to play</a>
+</footer>
+</div>
+</body>
+</html>

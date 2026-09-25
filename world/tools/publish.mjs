@@ -21,7 +21,7 @@ const INDEX = path.join(WORLD, "index.json");
 const ROOMS = path.join(WORLD, "rooms");
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";   // no 0/O or 1/I to mix up
 const MAX_HOMES_PER_ACCOUNT = 3;
-const NAME_BLOCK = ["fuck","shit","cunt","bitch","nigg","fag","slut","whore","rape","nazi","hitler","penis","vagina","dick","cock","pussy","porn","sex","kill","admin","moderator","petopia"];
+const NAME_BLOCK = ["nigger", "rape", "nazi", "hitler"];
 
 const title = String(process.env.ISSUE_TITLE || "");
 const body = String(process.env.ISSUE_BODY || "");
@@ -41,7 +41,7 @@ function nameProblem(n) {
   if (n.length < 2 || n.length > 20) return "The name needs 2 to 20 letters.";
   if (!/^[A-Za-z0-9][A-Za-z0-9 _.'-]*$/.test(n)) return "Names can use letters, numbers, spaces and - _ . ' only.";
   const flat = n.toLowerCase().replace(/0/g, "o").replace(/1/g, "i").replace(/3/g, "e").replace(/4/g, "a").replace(/5/g, "s").replace(/[^a-z]/g, "");
-  if (NAME_BLOCK.some((w) => flat.includes(w))) return "That name isn't allowed — please pick a friendlier one in the game.";
+  if (NAME_BLOCK.some((w) => flat.includes(w))) return "Statement/s in selected name was blocked.";
   return null;
 }
 

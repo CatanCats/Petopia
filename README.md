@@ -1,15 +1,27 @@
-# Petopia 🐾
+# Petopia 🐾 a cosy cat care game in your browser
 
-A cosy Aussie cat sim that runs in your browser. Raise kittens into cats, keep them fed, clean and happy, decorate their rooms, teach them tricks, play with them, and share your home with friends in Petopia World.
+![Petopia: raise kittens into cats, play with them in their room, weather and tricks, visit friends' homes](media/social-preview.png)
 
-No install, no account, and it works offline: it's one HTML file.
+**A free virtual pet game about cats.** Raise kittens into cats, keep them fed, clean and happy, decorate their rooms, teach them tricks, play with them, and share your home with friends in Petopia World. Think Tamagotchi meets a cosy cat café, with Aussie seasons.
+
+**▶ [Play in your browser](https://catancats.github.io/Petopia/)** · **⬇ [Download](https://github.com/CatanCats/Petopia/archive/refs/heads/main.zip)** · no install, no account, works offline: it's one HTML file.
+
+<p align="center">
+  <img src="media/home.png" width="190" alt="A furnished room with three cats">
+  <img src="media/laser.png" width="190" alt="A cat chasing a laser dot across the floor">
+  <img src="media/why.png" width="190" alt="The panel explaining why mood is changing">
+  <img src="media/world.png" width="190" alt="Petopia World leaderboards">
+</p>
 
 ---
 
 ## Play it
 
+**Online:** [catancats.github.io/Petopia](https://catancats.github.io/Petopia/). This needs GitHub Pages switched on; see [Getting found](#getting-found).
+
+**Offline:**
 1. On GitHub, press **Code → Download ZIP** and unzip it.
-2. Open **`Petopia.html`** in any modern browser (Chrome, Edge, Firefox or Safari, on a computer or phone).
+2. Open **`Petopia.html`** (or `index.html` for the welcome page) in any modern browser: Chrome, Edge, Firefox or Safari, on a computer or phone.
 
 `petopia/` is a self-contained copy of the same game with its music. Send someone that folder on its own and they can play from `petopia/petopia.html`.
 
@@ -157,7 +169,7 @@ Open it with the 🌏 button at the top.
 
 ### Your name comes first
 
-Before you share anything, you pick a name for other players to see, like *cat lover*. It has to be 2–20 letters, numbers or spaces, and unfriendly words are blocked. **Don't use your real name. Your name is public.**
+Before you share anything, you pick a name for other players to see, like *cat lover*. It has to be 2–20 letters, numbers or spaces, and hateful words are blocked. **Don't use your real name. Your name is public.**
 
 ### Share a room with a friend
 
@@ -209,12 +221,15 @@ Four boards: 🐱 **most cats**, 🐾 **most cat coins** collected, 🚪 **most 
 
 | Path | What it is |
 |---|---|
+| `index.html` | The welcome page: what Petopia is, screenshots, and a Play button |
 | `Petopia.html` | The game: one file, all code and art inside |
 | `petopia/petopia.html` | The same game, for the self-contained folder (only its songs path differs) |
 | `petopia/Songs/` | Background music |
 | `petopia/IDEAS.md` | Design notes on mini-games |
 | `world/` | Petopia World data, plus the robot's script in `world/tools/` |
 | `.github/workflows/petopia-world.yml` | The robot that files published homes |
+| `media/` | Screenshots and the link-preview image (`social-preview.png`) |
+| `sitemap.xml`, `robots.txt` | Help search engines find the online version |
 | `Old Versions/` | Earlier versions, kept for reference |
 
 **Changing the game:** edit `Petopia.html`, then refresh the folder copy so the two stay identical apart from the songs path:
@@ -224,6 +239,16 @@ sed 's#^const SONGS_DIR="petopia/Songs/";#const SONGS_DIR="Songs/";#' Petopia.ht
 ```
 
 The code is split into numbered sections (search for `═══`). Stats are driven by `catRates()`, which both the game tick and the stat panel use.
+
+## Getting found
+
+Some of this only the repo owner can do on GitHub:
+
+1. **Description and topics:** on the repo's front page, the ⚙️ next to **About**.
+2. **Website:** turn on **Settings → Pages → Deploy from a branch → `main` / root**. The game is then playable at `catancats.github.io/Petopia`, and `index.html` is its front page. Put that link in **About → Website**.
+3. **Social preview:** **Settings → General → Social preview**, then upload `media/social-preview.png`. It's the picture shown when the repo link is shared.
+
+Already in the files: link previews (title, description and image) in `index.html` and `Petopia.html`, a page icon, a sitemap and `robots.txt`.
 
 ## Licence
 

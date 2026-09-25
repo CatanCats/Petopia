@@ -4,7 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#FBF3E7">
-<title>Petopia 🐾</title>
+<!-- what search engines and link previews (Facebook, X, Discord, iMessage, WhatsApp) show -->
+<meta name="description" content="Petopia is a free, cosy cat care game that runs in your browser. Raise kittens into cats, feed and play with them, teach tricks, decorate their rooms, weather the seasons and visit friends' homes. No download, works offline.">
+<meta name="keywords" content="cat game, virtual pet, pet simulator, kitten game, cosy game, cozy game, browser game, html5 game, tamagotchi, cat cafe, free game, offline game">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Petopia">
+<meta property="og:title" content="Petopia — a cosy cat care game in your browser">
+<meta property="og:description" content="Raise kittens into cats, play with them in their room, teach tricks and visit friends' homes. Free, no download, works offline.">
+<meta property="og:image" content="https://raw.githubusercontent.com/CatanCats/Petopia/main/media/social-preview.png">
+<meta property="og:image:width" content="1280"><meta property="og:image:height" content="640">
+<meta property="og:image:alt" content="Petopia: two phone screens showing cats in a cosy room">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐾</text></svg>">
+<title>Petopia 🐾 Cosy cat care game in your browser</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
@@ -5034,11 +5046,11 @@ const MINIGAMES=[
   {id:"laser",   n:"Laser Dash",    emoji:"🔴", where:"room", cooldown:15*60000, trick:"speak", energy:-10, minEnergy:25,
    d:"Drag the dot across the floor — your cat gives chase and pounces.",
    role:"Burns off energy. A tuckered-out cat stays on best behaviour for 10 min.",
-   room:{goal:[5,7,9], time:22, intro:"Drag the red dot around the floor — keep it moving!"}},
+   room:{goal:[5,7,9], time:22, intro:"Drag the dot — keep it moving!"}},
   {id:"feather", n:"Feather Chase", emoji:"🪶", where:"room", cooldown:14*60000, trick:"sit", minEnergy:20,
    d:"The feather swings overhead — tap to leap as it swoops past.",
    role:"Playing together — extra bond.",
-   room:{goal:[4,5,6], time:24, intro:"Tap to leap as the feather swoops past!"}},
+   room:{goal:[4,5,6], time:24, intro:"Tap to leap as it swoops by!"}},
   {id:"fishing", n:"Rockpool Fishing", emoji:"🐟", where:"out", cooldown:18*60000, trick:"high5", minEnergy:15,
    d:"Stop the marker in the blue to hook one.", scale:[4,6,8],
    role:"An outing to the rockpool — brings home a fish for a free meal."},
