@@ -2,9 +2,9 @@
 
 ![Petopia: raise kittens into cats, play with them in their room, weather and tricks, visit friends' homes](media/social-preview.png)
 
-**A free virtual pet game about cats.** Raise kittens into cats, keep them fed, clean and happy, decorate their rooms, teach them tricks, play with them, and share your home with friends in Petopia World. Think Tamagotchi meets a cosy cat café, with Aussie seasons.
+**A free virtual pet game about cats.** Raise kittens into cats, keep them fed, clean and happy, decorate their rooms, teach them tricks, play with them, and share your home with friends in Petopia World. A little like Tamagotchi but open source and raise real and fantasy pets.
 
-**▶ [Play in your browser](https://catancats.github.io/Petopia/)** · **⬇ [Download](https://github.com/CatanCats/Petopia/archive/refs/heads/main.zip)** · no install, no account, works offline: it's one HTML file.
+**▶ [Play in your browser](https://catancats.github.io/Petopia/)** · **⬇ [Download](https://github.com/CatanCats/Petopia/archive/refs/heads/main.zip)** · no install, no account, works offline.
 
 <p align="center">
   <img src="media/home.png" width="190" alt="A furnished room with three cats">
@@ -15,23 +15,19 @@
 
 ---
 
-## Play it
-
-**Online:** [catancats.github.io/Petopia](https://catancats.github.io/Petopia/). This needs GitHub Pages switched on; see [Getting found](#getting-found).
-
-**Offline:**
+**To download the game**
 1. On GitHub, press **Code → Download ZIP** and unzip it.
 2. Open **`Petopia.html`** (or `index.html` for the welcome page) in any modern browser: Chrome, Edge, Firefox or Safari, on a computer or phone.
 
 `petopia/` is a self-contained copy of the same game with its music. Send someone that folder on its own and they can play from `petopia/petopia.html`.
 
-**Your save** lives in the browser you play in, so a different browser or device starts a new home. Settings → **Start a brand new home** wipes it. If a new version doesn't seem to change anything, press **Ctrl+Shift+R** (Cmd+Shift+R on a Mac) so the browser drops its cached copy.
+Your save lives is saved in the browser. Settings → **Start a brand new home** restarts from the beginning. If that does not work, try pressing **Ctrl+Shift+R** (Cmd+Shift+R on a Mac) so the browser deletes it cached data. 
 
 ---
 
 ## Your cats
 
-Every cat has four **needs**, plus **growth** and **bond**:
+You must deal with each animals four needs, plus growth and bond:
 
 | Bar | Goes down when… | Goes up when… |
 |---|---|---|
@@ -42,15 +38,15 @@ Every cat has four **needs**, plus **growth** and **bond**:
 | 🌱 Growth | — | eating, toys, winning games (not while sick) |
 | 💞 Bond | — | pats, tricks, toys, games, and slowly on its own when all four needs are high |
 
-**Tap any bar to see why it's moving.** The panel lists every reason by name ("Dirty litter tray", "Dark room at night", "Pippin is Social", "Honey Oak Armchair"), how long until the bar is full or empty at the current rate, and a tip for the biggest problem. It uses exactly the same maths as the game itself, so it's always right.
+**Tap for more information the bar or small arrow for more information. The panel lists why you got that rating, like for example "Dirty litter tray", for hygiene might reduce its level.
 
-**Life stages:** kitten → teen → adult. Growth fills the bar, and a sick cat doesn't grow until it's better.
+Life stages include kitten → teen → adult. Level up growth to grow your cat, a sick cat can't grow until it's better.
 
-**Neglect:** if needs stay very low a cat gets sick, then weak. With *away mode* on (the default), a badly neglected cat wanders off instead of passing away, and you bring it home by playing the **Homeward Maze**. Tap the purple banner, then swipe: the paw runs along corridors and stops at each junction.
+**Neglect:** if needs stay very low a animal gets sick, then weak. With *away mode* on (the default), a badly neglected cat wanders off instead of passing away, and you bring it home by playing the **Homeward Maze** game. Otherwise your animal dies.
 
 ### Traits
 
-Every cat has one trait. Kittens usually inherit one from a parent.
+Every animal has different traits that help make up its personality. Kittens usually inherit one from a parent.
 
 | Trait | What it does |
 |---|---|
@@ -73,14 +69,14 @@ There are 14 breeds to collect, from Cream Puff to Chocolate Mink.
 
 ## Caring for them
 
-- **Feed:** eight foods, from cheap kibble to a Royal Feast, plus Kitty Medicine for sickness. A fish brought home from **Rockpool Fishing** waits in the pantry as a free meal.
-- **Pat:** tap a cat to select it, then tap its head, chin, tummy or paws. Now and then a cat rolls over: catch the **tummy rub** within a few seconds for a big combo.
-- **Sleep:** tired cats nap on their own; the Sleep button sends the selected cat off now. A bed makes naps far more restful.
-- **Clean:** tap messes on the floor, and tap a litter tray to scoop it. Every grown cat wants its own tray.
+- Feed them with different foods, from cheap kibble to a Royal Feast, plus Kitty Medicine for sickness. If you play the game rockpool fishing you get a free meal to feed you animal.
+- Pat by tapping an animal to select it, then tap its head, chin, tummy or paws. Sometimes a animal rolls over: give a **tummy rub* within a few seconds for a big combo.
+- Sleep: tired cats nap on their own; the Sleep button sends the selected cat off now. A bed makes naps far more restful.
+- Keep your cat clean: tap messes on the floor, and tap a litter tray to scoop it. Every adult cat wants its own tray if you do not give them one they might poop on your floor.
 
 ### Furniture
 
-There are 56 kinds of furniture in 21 colourways. Place them in **decorate mode** (🎨): drag to move, and use Grid to snap. Many pieces also *do* something, and the stat panel names the piece that's helping:
+There are 56 kinds of furniture in 21 colourways. Place them in decorate mode (🎨) or from the shop. Drag to move, and many pieces also have a positive effect, for example:
 
 | Effect | Pieces (examples) |
 |---|---|
@@ -96,13 +92,13 @@ There are 56 kinds of furniture in 21 colourways. Place them in **decorate mode*
 | Feeds hungry cats | auto-feeder (tap it to fill) |
 | Lights the room at night | lamps |
 
-**Rooms** hold a set number of residents: Cosy Room 2, Small 3, Medium 5, Large 7, Grand Hall 10. Cats wander between rooms, and a visitor shows as "+1" on the room tab. There are 8 **room styles** (wallpaper, floor, light and music together), 22 wallpapers and 16 floors.
+Each Room hold a set number of residents: Cosy Room 2, Small 3, Medium 5, Large 7, Grand Hall 10, you start off with a room and if you need more space, buy more rooms. Cats wander between rooms, and a visitor shows as "+1" on the room tab. There are 8 **room styles** (wallpaper, floor, light and music together), 22 wallpapers and 16 floors.
 
 ---
 
-## 🎓 Tricks
+ ### Tricks
 
-Every trick has a job, and rests for a while after you use it. To teach one, build your bond, then **win that trick's game together**.
+Your animals can do tricks, and rest for a while after they do one. To teach one, build your bond.
 
 | Trick | Bond | Learnt from | Job | Rests |
 |---|---|---|---|---|
@@ -114,9 +110,9 @@ Every trick has a job, and rests for a while after you use it. To teach one, bui
 
 ---
 
-## 🎾 Play
+## Play
 
-**Play** opens a panel about the selected cat. At the top is what it wants right now and why: a trick it's ready to learn, a calm game when it's tired, fishing when it's hungry, the laser for a Naughty cat. Each game rests after a win, but you can retry a loss straight away.
+Play opens a panel about the selected cat. At the top is what it wants right now and why: a trick it's wants to learn, a game it wants to play before a nap, fishing with you when active, the laser for a Naughty cat. Each game rests after a win, but you can retry a loss straight away.
 
 **In the room, with your real cat:**
 
