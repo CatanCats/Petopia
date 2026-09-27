@@ -4,7 +4,7 @@
 
 **A free virtual pet game about cats.** Raise kittens into cats, keep them fed, clean and happy, decorate their rooms, teach them tricks, play with them, and share your home with friends in Petopia World. A little like Tamagotchi but open source and raise real and fantasy pets.
 
-**▶ [Play in your browser](https://catancats.github.io/Petopia/)** · **⬇ [Download](https://github.com/CatanCats/Petopia/archive/refs/heads/main.zip)** · no install, no account, works offline.
+**▶ [Play in your browser](https://catancats.github.io/Petopia/)** · **⬇ [Download](https://github.com/CatanCats/Petopia/archive/refs/heads/main.zip)**
 
 <p align="center">
   <img src="media/home.png" width="190" alt="A furnished room with three cats">
@@ -16,12 +16,12 @@
 ---
 
 **To download the game**
-1. On GitHub, press **Code → Download ZIP** and unzip it.
-2. Open **`Petopia.html`** (or `index.html` for the welcome page) in any modern browser: Chrome, Edge, Firefox or Safari, on a computer or phone.
+1. On GitHub, press Code → Download ZIP and unzip it.
+2. Open `Petopia.html` or `index.html` for the welcome page.
 
-`petopia/` is a self-contained copy of the same game with its music. Send someone that folder on its own and they can play from `petopia/petopia.html`.
+`petopia/` is the game with the music. You can also just download the petopia.html file.
 
-Your save lives is saved in the browser. Settings → **Start a brand new home** restarts from the beginning. If that does not work, try pressing **Ctrl+Shift+R** (Cmd+Shift+R on a Mac) so the browser deletes it cached data. 
+Your save is saved in the browser. Settings → **Start a brand new home** restarts from the beginning. If that does not work, try pressing **Ctrl+Shift+R** (Cmd+Shift+R on a Mac) so the browser deletes it cached data. 
 
 ---
 
