@@ -1037,7 +1037,7 @@ const SONGS=[
 const Audio={
   ac:null, master:null, musicGain:null, sfxGain:null,
   musicOn:true, sfxOn:true, musicVol:0.34, sfxVol:0.7,
-  realOn:true, realFailed:false, el:null, playlist:[], pl:0,
+  realOn:true, realFailed:false, el:null, playlist:[], pl:0, hidden:false,
   timer:null, step:0, scaleName:"cosy", started:false,
   SCALES:{
     cosy:[0,2,4,7,9,12,14,16], night:[0,3,5,7,10,12,15,17], bright:[0,2,4,6,7,11,12,14],
@@ -1063,7 +1063,52 @@ const Audio={
       for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,decay); }
     return b;
   },
-  resume(){ const ac=this.ensure(); if(ac&&ac.state==="suspended") ac.resume(); },
+  /* iOS reports "interrupted" (calls, Siri, lock screen, app switching), not
+     just "suspended", so resume from anything that isn't running. */
+  resume(){ const ac=this.ensure();
+    if(ac&&!this.hidden&&ac.state!=="running"&&ac.state!=="closed"){ const p=ac.resume(); if(p&&p.catch) p.catch(()=>{}); } },
+  /* Runs on every tap, click and key press (see bindUI). Phones only let audio
+     start inside certain gestures: on a touch screen that's touchend, pointerup
+     or click, not touchstart or pointerdown. iOS can also stop audio again
+     later, so instead of unlocking once, keep retrying until it's playing.
+     Once everything is playing this does nothing. */
+  gesture(){
+    if(this.hidden) return;
+    this._tapAt=performance.now();
+    const ac=this.ensure();
+    if(ac&&ac.state!=="running"){
+      this.resume();
+      // older iOS only starts output once something is played inside the gesture
+      try{ const b=ac.createBufferSource(); b.buffer=ac.createBuffer(1,1,22050); b.connect(ac.destination); b.start(0); }catch(_){}
+    }
+    if(this.musicOn){
+      if(this.el){ if(this.el.paused) this._play(); }
+      else if(!this.timer) this.startMusic();
+    }
+  },
+  /* page hidden (app switched, screen locked, tab changed): stop the music
+     rather than playing on in the background, and let the audio hardware sleep */
+  sleep(){
+    if(this.hidden) return; this.hidden=true;
+    if(this.el&&!this.el.paused) this.el.pause();
+    if(this.timer){ clearInterval(this.timer); this.timer=null; this._genWasOn=true; }
+    if(this.ac&&this.ac.state==="running"){ const p=this.ac.suspend(); if(p&&p.catch) p.catch(()=>{}); }
+  },
+  wake(){
+    if(!this.hidden) return; this.hidden=false;
+    if(this.ac) this.resume();
+    if(this.musicOn){
+      if(this.el) this._play();
+      else if(this._genWasOn) this._startGenerative();
+    }
+    this._genWasOn=false;
+  },
+  /* iOS ignores <audio>.volume (it always reads back 1), so the music slider
+     would do nothing there. */
+  _volumeWorks(){
+    if(this._volOk===undefined){ try{ const t=document.createElement("audio"); t.volume=0.5; this._volOk=Math.abs(t.volume-0.5)<0.01; }catch(_){ this._volOk=true; } }
+    return this._volOk;
+  },
   /* soft rain on the windows, as a looping filtered noise under the sfx volume */
   setRain(level){
     const ac=this.ac; if(!ac) return;
@@ -1125,6 +1170,12 @@ const Audio={
        element playback with its own .volume has none of that risk, at
        the cost of the music slider being a second, independent volume
        control from the SFX one instead of sharing one audio graph. */
+    /* ...except where .volume doesn't work (iOS), which also never opens the
+       game over file://: there, route the element through the music gain so
+       the slider works. */
+    if(!this._volumeWorks()&&location.protocol!=="file:"&&this.ensure()){
+      try{ this.ac.createMediaElementSource(el).connect(this.musicGain); }catch(e){ LOG("music routing:",e.message); }
+    }
     this.el=el;
     this._playTrack();
     return true;
@@ -1132,7 +1183,11 @@ const Audio={
   _playTrack(){
     if(!this.el) return;
     this.el.src=SONGS_DIR+encodeURIComponent(this.playlist[this.pl%this.playlist.length]);
-    this.el.play().catch(e=>LOG("song playback needs a tap first:",e.message));
+    if(!this.hidden) this._play();
+  },
+  _play(){
+    const p=this.el&&this.el.play();
+    if(p&&p.catch) p.catch(e=>LOG("song playback needs a tap first:",e.message));
   },
   _nextReal(){
     if(!this.el) return;
@@ -1156,7 +1211,7 @@ const Audio={
   },
   _stopReal(){ if(this.el){ this.el.pause(); this.el.removeAttribute("src"); this.el.load(); this.el=null; } },
   _startGenerative(){
-    if(!this.ensure()||!this.musicOn||this.timer) return;
+    if(!this.ensure()||!this.musicOn||this.timer||this.hidden) return;
     this.started=true;
     const beat=()=>{
       this.step++;
@@ -1172,7 +1227,7 @@ const Audio={
     this.timer=setInterval(beat,640);
   },
   _pad(f,dur){
-    const ac=this.ac; if(!ac) return; const t=ac.currentTime;
+    const ac=this.ac; if(!ac||ac.state!=="running") return; const t=ac.currentTime;
     const g=ac.createGain(); g.gain.setValueAtTime(0,t);
     g.gain.linearRampToValueAtTime(0.13,t+1.4); g.gain.linearRampToValueAtTime(0,t+dur);
     const flt=ac.createBiquadFilter(); flt.type="lowpass"; flt.frequency.value=820;
@@ -1181,7 +1236,7 @@ const Audio={
     flt.connect(g); g.connect(this.musicGain); if(this.verb) g.connect(this.verb);
   },
   _pluck(f,amp){
-    const ac=this.ac; if(!ac) return; const t=ac.currentTime;
+    const ac=this.ac; if(!ac||ac.state!=="running") return; const t=ac.currentTime;
     const o=ac.createOscillator(), g=ac.createGain(), flt=ac.createBiquadFilter();
     o.type="sine"; o.frequency.value=f;
     flt.type="lowpass"; flt.frequency.setValueAtTime(2600,t); flt.frequency.exponentialRampToValueAtTime(700,t+0.5);
@@ -1193,6 +1248,10 @@ const Audio={
   /* ── SFX ── */
   sfx(kind,detune){
     const ac=this.ensure(); if(!ac||!this.sfxOn) return;
+    /* A context that isn't running yet queues sounds until it starts. Right
+       after a tap that's what we want (it's starting now), but anything queued
+       while audio is blocked or interrupted would all burst out together later. */
+    if(ac.state!=="running"&&(this.hidden||performance.now()-(this._tapAt||-1e9)>1000)){ this.resume(); return; }
     const t=ac.currentTime, out=this.sfxGain;
     const tone=(f0,f1,dur,type,amp,delay)=>{
       const o=ac.createOscillator(), g=ac.createGain();
@@ -6094,33 +6153,24 @@ function bindUI(){
     document.getElementById("photoOut").classList.remove("open"));
   addEventListener("resize",()=>{ View.measure(); renderAll(); });
   addEventListener("visibilitychange",()=>{
-    if(document.hidden){ state.lastSeen=now(); saveGame(); }
-    else { applyOfflineDecay(); state.lastSeen=now(); applyTheme(); renderAll(); }
+    if(document.hidden){ state.lastSeen=now(); saveGame(); Audio.sleep(); }
+    else { applyOfflineDecay(); state.lastSeen=now(); applyTheme(); renderAll(); Audio.wake(); }
   });
+  // iOS can freeze the page into the back/forward cache without a visibilitychange
+  addEventListener("pagehide",()=>Audio.sleep());
+  addEventListener("pageshow",()=>{ if(!document.hidden) Audio.wake(); });
   addEventListener("keydown",e=>{
     if(e.key==="Escape"){ if(document.getElementById("mg").classList.contains("open")) MG.close();
       else if(currentSheet) closeSheet(); else if(Deco.on) Deco.toggle(false); }
     if(e.key==="ArrowLeft") View.camTarget=clamp(View.camTarget-90,0,View.maxCam());
     if(e.key==="ArrowRight") View.camTarget=clamp(View.camTarget+90,0,View.maxCam());
   });
-  // one-time gesture unlock for WebAudio + the real <audio> track element.
-  // Browsers block audio.play() until a user gesture; startMusic() had
-  // already created Audio.el during init (so it exists but is paused), and
-  // its own early-return guard (`||this.el`) then skipped ever retrying —
-  // meaning background music silently never actually started. Retry the
-  // paused element directly instead of going back through startMusic().
-  const unlock=()=>{ Audio.ensure(); Audio.resume();
-    if(state.settings.music){
-      if(Audio.el){ if(Audio.el.paused) Audio.el.play().catch(()=>{}); }
-      else Audio.startMusic();
-    }
-    removeEventListener("pointerdown",unlock);
-    removeEventListener("touchstart",unlock);
-    removeEventListener("keydown",unlock);
-  };
-  addEventListener("pointerdown",unlock);
-  addEventListener("touchstart",unlock);
-  addEventListener("keydown",unlock);
+  /* Start (and keep restarting) audio from user gestures. Capture phase, so
+     handlers that stop propagation (dragging furniture) can't swallow it.
+     pointerdown/keydown cover desktop; touchend/pointerup/click are the ones
+     iOS and Android actually accept for a tap. */
+  for(const t of ["pointerdown","pointerup","touchend","click","keydown"])
+    addEventListener(t,()=>Audio.gesture(),{capture:true,passive:true});
 }
 
 /* migrate a v3/v4 save into the new shape rather than wiping it */
