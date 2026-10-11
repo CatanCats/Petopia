@@ -127,8 +127,11 @@ input,button,textarea{font-family:inherit;color:inherit;}
 /* cat sprites */
 .catSprite{position:absolute;left:0;bottom:0;will-change:transform;cursor:pointer;pointer-events:auto;}
 .catSprite .svgholder{transform-origin:center bottom;}
-.catSprite svg{display:block;overflow:visible;filter:drop-shadow(0 6px 5px rgba(123,90,60,.25));}
-.catSprite.sick svg{filter:drop-shadow(0 6px 5px rgba(123,90,60,.25)) saturate(.5) brightness(.96);}
+/* The shadow lives in the SVG now (see buildCatSVG). The no-op filter is
+   deliberate: it keeps each cat's SVG in its own paint chunk, so the tail and
+   legs animating only repaint the cat. Without it, measured frame rate drops. */
+.catSprite svg{display:block;overflow:visible;filter:opacity(1);}
+.catSprite.sick svg{filter:saturate(.5) brightness(.96);}
 .catSprite.walking .svgholder{animation:walkbob .34s ease-in-out infinite;}
 @keyframes walkbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2.5px)}}
 .catG .tail{transform-box:fill-box;transform-origin:50% 90%;animation:tailsway 2.6s ease-in-out infinite;}
@@ -509,7 +512,6 @@ body.visiting #menuBtn, body.visiting #worldBtn, body.visiting .hint{display:non
 /* dress-up preview */
 .dressWrap{background:linear-gradient(180deg,var(--wall-1),var(--wall-2));border-radius:16px;padding:10px;display:grid;place-items:center;
   margin-bottom:10px;min-height:130px;box-shadow:inset 0 2px 8px rgba(123,90,60,.16);}
-.dressWrap svg{filter:drop-shadow(0 6px 5px rgba(123,90,60,.25));}
 
 @media (max-width:359px){
   .grid{grid-template-columns:repeat(2,1fr);}
@@ -695,21 +697,25 @@ const Particles={
   step(dt,grav,drag,wind){
     if(!this.count) return 0;
     if(this.ready){
-      const before=this.count;
+      this._compactShapes(dt);
       this.count=this.wasm.step(this.count,dt,grav,drag,wind);
-      if(this.count<before) this._compactShapes(before);
       this.wasm.pack(this.count,this.instOff);
     }else{
       this._jsStep(dt,grav,drag,wind); this._jsPack();
     }
     return this.count;
   },
-  /* WASM swaps the last live particle into a dead slot; mirror that for the
-     shape ids, which live outside linear memory. */
-  _compactShapes(before){
-    // Re-derive by scanning: cheap because it only runs on frames where
-    // particles actually died, and the pool is small.
-    for(let i=this.count;i<before;i++) this.shapeOf[i]=this.shapeOf[i];
+  /* WASM swaps the last particle into each dead slot; shape ids live outside
+     linear memory, so replay the same swaps on them before the kernel runs.
+     Lives are f32, hence Math.fround, so the same particles die here as there. */
+  _compactShapes(dt){
+    const f=this.f32, sh=this.shapeOf, L=this._life||(this._life=new Float32Array(P_MAX)), d=Math.fround(dt);
+    let n=this.count;
+    for(let i=0;i<n;i++) L[i]=f[i*P_STRIDE+4];
+    for(let i=0;i<n;){
+      if(Math.fround(L[i]-d)<=0){ n--; L[i]=L[n]; sh[i]=sh[n]; }
+      else i++;
+    }
   },
   _jsStep(dt,grav,drag,wind){
     const f=this.f32; let n=this.count, i=0;
@@ -874,7 +880,7 @@ void main(){
 }`;
 
 function makeGL(canvas){
-  const gl=canvas.getContext("webgl2",{alpha:true,antialias:true,premultipliedAlpha:true,powerPreference:"low-power"});
+  const gl=canvas.getContext("webgl2",{alpha:true,antialias:false,premultipliedAlpha:true,powerPreference:"low-power"});
   if(!gl) return null;
   function sh(type,src){ const s=gl.createShader(type); gl.shaderSource(s,src); gl.compileShader(s);
     if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){ LOG("shader:",gl.getShaderInfoLog(s)); return null; } return s; }
@@ -2124,7 +2130,11 @@ function visualSig(c){
   return [si,moodOf(c),c.tummy<30?"H":"",c.hygiene<35?"D":"",c.sick?"S":"",c.breed,c.face,
     COSTUME_SLOTS.map(s=>(c.wear&&c.wear[s])||"-").join("|")].join("");
 }
-function buildCatSVG(c){
+/* The ground shadow is a plain gradient ellipse outside .catG, so it stays put
+   while the cat animates. It used to be a CSS drop-shadow filter on the whole
+   SVG, but the tail and legs animate nonstop, so every cat re-ran a blur
+   filter every frame. That was the single biggest GPU cost in the game. */
+function buildCatSVG(c,opts){
   const si=stageIndex(c), S=STAGES[si], B=BREEDS[c.breed]||BREEDS.cream;
   const mood=moodOf(c), hungry=c.tummy<30&&mood!=="sleepy", dirty=c.hygiene<35;
   const fur=B.fur, shade=B.shade, belly=B.belly, ink=(B.tux||B.points)?"#2c2c33":"#3f3128", nose=B.nose;
@@ -2179,7 +2189,11 @@ function buildCatSVG(c){
   const wear=c.wear||{};
   const dress=slot=>{ const id=wear[slot]; if(!id||!COSTUME_ART[id]) return ""; try{ return COSTUME_ART[id](G); }catch(e){ return ""; } };
   const flip=c.face<0?`transform="scale(-1,1) translate(-200,0)"`:"";
-  return `<svg viewBox="0 0 200 180" width="${(S.px*200/180).toFixed(1)}" height="${S.px}" xmlns="http://www.w3.org/2000/svg"><g class="catG"><g class="catFlip" ${flip}>
+  const sx=c.face<0?200-bx:bx;
+  const shadow=opts&&opts.shadow===false?"":
+    `<defs><radialGradient id="catShadow"><stop offset="0" stop-color="#7B5A3C" stop-opacity=".34"/><stop offset=".6" stop-color="#7B5A3C" stop-opacity=".2"/><stop offset="1" stop-color="#7B5A3C" stop-opacity="0"/></radialGradient></defs>`+
+    `<ellipse cx="${sx}" cy="${floorY+3}" rx="${(bRx*1.35).toFixed(1)}" ry="9" fill="url(#catShadow)"/>`;
+  return `<svg viewBox="0 0 200 180" width="${(S.px*200/180).toFixed(1)}" height="${S.px}" xmlns="http://www.w3.org/2000/svg">${shadow}<g class="catG"><g class="catFlip" ${flip}>
     ${dress("aura")}${dress("back")}
     ${tail}
     ${leg("legBL",backX-lw*0.7,shade,true)}${leg("legFR",frontX-lw*0.7,shade,true)}
@@ -2560,13 +2574,13 @@ function weatherBlurb(){
   return `${WEATHER[w].i} ${WEATHER[w].n} until about ${t} — ${WEATHER[w].d}`;
 }
 const Wx={
-  flash:0, nextBolt:4, cv:null, g:null, w:0, h:0,
+  flash:0, nextBolt:4, cv:null, g:null, w:0, h:0, drawn:false, sig:"",
   ensure(){
     if(!this.cv) this.cv=document.getElementById("wxCv");
     const dpr=Math.min(2,devicePixelRatio||1), W=View.w, H=View.h;
     if(this.w!==W||this.h!==H||!this.g){ this.w=W; this.h=H;
       this.cv.width=Math.round(W*dpr); this.cv.height=Math.round(H*dpr);
-      this.g=this.cv.getContext("2d"); this.g.setTransform(dpr,0,0,dpr,0,0); }
+      this.g=this.cv.getContext("2d"); this.g.setTransform(dpr,0,0,dpr,0,0); this.sig=""; }
   },
   /* the glass of each window in the room, on screen (see the window painter: glass is 80/128 of the cell) */
   panes(){
@@ -2581,9 +2595,13 @@ const Wx={
     if(!state) return;
     this.ensure();
     const g=this.g, W=this.w, H=this.h, w=weatherNow(), t=performance.now()/1000;
-    g.clearRect(0,0,W,H);
     this.flash=Math.max(0,this.flash-dt*3.2);
-    if(!w) return;
+    /* This canvas covers the whole stage, so clearing it every frame made the
+       browser re-upload it every frame even when it was empty. Now it is only
+       cleared when something was drawn, and a sunny window (nothing moving)
+       is only repainted when the windows move on screen. */
+    const blank=()=>{ if(this.drawn){ g.clearRect(0,0,W,H); this.drawn=false; this.sig=""; } };
+    if(!w){ blank(); return; }
     const night=daySlot()==="night";
     // lightning now and then; cats jump, thunder follows
     if(w==="storm"){
@@ -2593,7 +2611,15 @@ const Wx={
         for(const c of catsIn(state.activeRoom)) if(!c.sleeping&&!c.gameCtl&&!isBreeding(c)) spriteAnim(c,"startle",500);
       }
     }
-    for(const P of this.panes()){
+    const panes=this.panes();
+    if(!panes.length){ blank(); return; }
+    if(w==="sunny"&&this.flash<=0){
+      const sig=daySlot()+"|"+panes.map(P=>Math.round(P.x)+","+Math.round(P.y)+","+Math.round(P.s)).join(";");
+      if(sig===this.sig) return;
+      this.sig=sig;
+    } else this.sig="";
+    g.clearRect(0,0,W,H); this.drawn=true;
+    for(const P of panes){
       g.save(); g.beginPath(); g.rect(P.x,P.y,P.s,P.s); g.clip();
       const wash={sunny:null,cloudy:"rgba(200,208,220,.35)",rain:"rgba(120,138,170,.42)",storm:"rgba(70,80,112,.55)",snow:"rgba(226,234,244,.45)"}[w];
       if(wash){ g.fillStyle=wash; g.fillRect(P.x,P.y,P.s,P.s); }
@@ -2711,6 +2737,7 @@ function burst(kind,sxScreen,syScreen,opts){
   const wx=sxScreen+View.camX, wy=syScreen;
   const n=opts.n||14;
   const C=opts.colours||[[1,.85,.4],[1,.6,.7],[.6,.85,1]];
+  fxFullRate(opts.lifeMax||1.5);
   for(let i=0;i<n;i++){
     const a=opts.dir!==undefined?opts.dir+rnd(-0.6,0.6):rnd(0,6.283);
     const sp=rnd(opts.spMin||40,opts.spMax||170);
@@ -2723,6 +2750,7 @@ function burst(kind,sxScreen,syScreen,opts){
 function confettiRain(n){
   if(!state||!state.settings.particles) return;
   const C=[[1,.78,.3],[.96,.45,.55],[.55,.8,.95],[.6,.88,.6],[.8,.6,.95]];
+  fxFullRate(3.2);
   for(let i=0;i<(n||90);i++){
     const c=pick(C);
     Particles.spawn(View.camX+rnd(0,View.w), rnd(-140,-10), rnd(-40,40), rnd(30,120),
@@ -2759,7 +2787,14 @@ function ambientSpawn(dt){
       rnd(4,7), rnd(7,12), 1,1,1, rnd(-1,1), PSHAPE.snow);
   }
 }
-let fxWasEmpty=true;
+/* A few dust motes are almost always drifting about, which used to mean
+   repainting the whole full-screen particle canvas every frame forever. They
+   barely move, so when only ambient particles are alive the canvas is redrawn
+   at AMBIENT_FX_FPS. Bursts and confetti get the full frame rate while they
+   last. The simulation itself still steps every frame, so motion is the same. */
+const AMBIENT_FX_FPS=30;
+let fxWasEmpty=true, fxFullUntil=0, fxLastDraw=0, fxLastCam=0;
+function fxFullRate(lifeSec){ fxFullUntil=Math.max(fxFullUntil,performance.now()+lifeSec*1000); }
 function drawParticles(dt){
   const V=View;
   Particles.step(dt, 55, 0.992, 0);
@@ -2767,6 +2802,9 @@ function drawParticles(dt){
     if(!fxWasEmpty){ V.fx.clear(); fxWasEmpty=true; }
     return;
   }
+  const t=performance.now();
+  if(!fxWasEmpty&&t>=fxFullUntil&&Math.abs(V.camX-fxLastCam)<0.5&&t-fxLastDraw<1000/AMBIENT_FX_FPS-2) return;
+  fxLastDraw=t; fxLastCam=V.camX;
   fxWasEmpty=false;
   V.fx.clear();
   V.fx.begin();
@@ -2783,6 +2821,15 @@ function drawParticles(dt){
 }
 
 /* ═══════════════════════ 13. SPRITES & HUD ═══════════════════════ */
+/* Sprites, furniture hit boxes and the scroll rail are positioned every frame.
+   Writing an unchanged value still dirties style (and left/top/width/height
+   also force layout), so remember what was last written and skip repeats. */
+function setStyle(el,prop,v){
+  const c=el._st||(el._st={});
+  if(c[prop]===v) return;
+  c[prop]=v;
+  if(prop.charCodeAt(0)===45) el.style.setProperty(prop,v); else el.style[prop]=v;
+}
 function syncSprites(){
   const layer=document.getElementById("catsLayer"); if(!layer) return;
   const here=catsIn(state.activeRoom), ids=new Set(here.map(c=>c.id));
@@ -2816,18 +2863,18 @@ function positionSprites(){
     const scale=0.80+depth*0.26;
     const xpx=c.x*V.worldW-V.camX;
     const ypx=c.y*V.h;
-    if(xpx<-160||xpx>V.w+160){ el.style.visibility="hidden"; continue; }
-    el.style.visibility="visible";
+    if(xpx<-160||xpx>V.w+160){ setStyle(el,"visibility","hidden"); continue; }
+    setStyle(el,"visibility","visible");
     const hop=c.hop?Math.abs(Math.sin(c.hop))*4:0;
-    el.style.transform=`translate(${xpx-px*0.556*scale}px, ${-(V.h-ypx)-hop-(c.lift||0)}px) scale(${scale})`;
-    el.style.zIndex=String(Math.round(c.y*200)+(c.id===state.selected?400:0));
+    setStyle(el,"transform",`translate(${(xpx-px*0.556*scale).toFixed(1)}px, ${(-(V.h-ypx)-hop-(c.lift||0)).toFixed(1)}px) scale(${scale.toFixed(3)})`);
+    setStyle(el,"zIndex",String(Math.round(c.y*200)+(c.id===state.selected?400:0)));
     const moving=!c.sleeping&&c.hop>0.1&&!(c.freezeUntil&&t<c.freezeUntil);
     el.classList.toggle("walking",moving);
     el.classList.toggle("sleeping",!!c.sleeping);
     const bs=c.sleeping?null:breedStage(c);
     el.classList.toggle("courting",bs==="acquainted"||bs==="close");
     el.classList.toggle("snuggle",bs==="snuggled");
-    if(bs){ el.style.setProperty("--lean",(c.face>0?5:-5)+"px"); el.style.setProperty("--tilt",(c.face>0?4:-4)+"deg"); }
+    if(bs){ setStyle(el,"--lean",(c.face>0?5:-5)+"px"); setStyle(el,"--tilt",(c.face>0?4:-4)+"deg"); }
   }
 }
 /* Furniture used to only be draggable via a hand-rolled hit-test against
@@ -2863,11 +2910,11 @@ function positionFurniHits(){
     const t=Math.max(0,(p.y-HORIZON)/(1-HORIZON));
     const sc=it.zone==="wall"?1:(0.74+t*0.46);
     const w=it.w*sc, h=w;
-    if(sx<-w||sx>V.w+w){ el.style.display="none"; continue; }
-    el.style.display="block";
-    el.style.left=(sx-w/2)+"px"; el.style.top=(sy-h)+"px";
-    el.style.width=w+"px"; el.style.height=h+"px";
-    el.style.zIndex=String(Math.round(p.y*200));
+    if(sx<-w||sx>V.w+w){ setStyle(el,"display","none"); continue; }
+    setStyle(el,"display","block");
+    setStyle(el,"left",(sx-w/2).toFixed(1)+"px"); setStyle(el,"top",(sy-h).toFixed(1)+"px");
+    setStyle(el,"width",w.toFixed(1)+"px"); setStyle(el,"height",h.toFixed(1)+"px");
+    setStyle(el,"zIndex",String(Math.round(p.y*200)));
   }
 }
 /* Mirrors the old version's makeDraggable() almost exactly: each element
@@ -4061,7 +4108,7 @@ function moveCatToAdjacentRoom(c){
 }
 
 /* ═══════════════════════ 21. FRAME LOOP ═══════════════════════ */
-let fpsAcc=0, fpsN=0;
+let fpsAcc=0, fpsN=0, railEl=null, railThumbEl=null;
 function frame(ts){
   /* Backgrounded tabs still get throttled rAF ticks in most browsers, but
      not reliably inside every wrapped WebView — skip the WebGL draws and
@@ -4106,11 +4153,11 @@ function frame(ts){
     ambientSpawn(dt);
     drawParticles(dt);
     // scroll rail
-    const rail=document.getElementById("rail"), th=document.getElementById("railThumb");
+    const rail=railEl||(railEl=document.getElementById("rail")), th=railThumbEl||(railThumbEl=document.getElementById("railThumb"));
     const frac=View.maxCam()>0?View.camX/View.maxCam():0;
     const vis=View.w/View.worldW;
-    th.style.width=(vis*100)+"%";
-    th.style.marginLeft=(frac*(1-vis)*100)+"%";
+    setStyle(th,"width",(vis*100).toFixed(2)+"%");
+    setStyle(th,"marginLeft",(frac*(1-vis)*100).toFixed(2)+"%");
     rail.classList.toggle("hide",View.maxCam()<4);
   }
   requestAnimationFrame(frame);
@@ -5174,7 +5221,7 @@ const MG={
     this.kx=Math.max(1,w/320); this.ky=Math.max(1,h/240); this.k=Math.min(this.kx,this.ky);
     // the cat comes along: its own drawing, used by the outing scenes
     this.catImg=null;
-    try{ const img=new Image(); img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(buildCatSVG(c)); this.catImg=img; }catch(e){}
+    try{ const img=new Image(); img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(buildCatSVG(c,{shadow:false})); this.catImg=img; }catch(e){}
     this.g=MG_BUILD[id](this,diff);
     document.getElementById("mgAction").textContent="Go!";
     document.getElementById("mgAction").disabled=false;
