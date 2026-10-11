@@ -2529,13 +2529,24 @@ async function loadGame(){
   try{ const v=await Store.get(LEGACY_SAVE_KEY); if(v) return JSON.parse(v); }catch(e){}
   return null;
 }
+/* Saves are batched: saveGame() writes 0.7s after the last change. When the
+   page is closing, saveNow() writes straight away. Phones freeze or kill a
+   page the moment it's swiped away, so a pending timer never fires there. */
 function saveGame(){
   clearTimeout(saveTimer);
   if(typeof Visit!=="undefined"&&Visit.on) return;
-  // checked again when it fires: a visit started in the meantime must never be saved over your home
-  saveTimer=setTimeout(async()=>{ if(typeof Visit!=="undefined"&&Visit.on) return; try{ state.lastSeen=now();
-    await Store.set(SAVE_KEY,JSON.stringify(state,(k,v)=>k.charAt(0)==="_"?undefined:v));
-    try{ if(localStorage.getItem(SAVE_KEY)) localStorage.removeItem(LEGACY_SAVE_KEY); }catch(_){} }catch(e){} },700);
+  saveTimer=setTimeout(saveNow,700);
+}
+function saveNow(){
+  clearTimeout(saveTimer); saveTimer=null;
+  // checked here too: a visit started in the meantime must never be saved over your home
+  if(!state||(typeof Visit!=="undefined"&&Visit.on)) return;
+  // while hidden, lastSeen stays at the moment you left, so time away is counted on return
+  if(!document.hidden) state.lastSeen=now();
+  try{
+    Store.set(SAVE_KEY,JSON.stringify(state,(k,v)=>k.charAt(0)==="_"?undefined:v));   // localStorage writes synchronously
+    try{ if(localStorage.getItem(SAVE_KEY)) localStorage.removeItem(LEGACY_SAVE_KEY); }catch(_){}
+  }catch(e){}
 }
 
 /* ═══════════════════════ 10. VIEW & CAMERA ═══════════════════════ */
@@ -4225,6 +4236,10 @@ function frame(ts){
 /* ═══════════════════════ 22. STAT TICK ═══════════════════════ */
 function tick(){
   if(!state||Visit.on) return;                     // your home waits while you're out visiting
+  /* Hidden pages get their timers throttled (desktop) or frozen (phones), so
+     live ticks there were patchy. Time away is applied in one go by
+     applyOfflineDecay() when the page is shown again, the same as after a close. */
+  if(document.hidden) return;
   { const w=weatherNow(); Audio.setRain(w==="storm"?0.09:w==="rain"?0.05:0); }
   const dead=[], away=[], slot=daySlot();
   for(const room of state.rooms){
@@ -6153,11 +6168,14 @@ function bindUI(){
     document.getElementById("photoOut").classList.remove("open"));
   addEventListener("resize",()=>{ View.measure(); renderAll(); });
   addEventListener("visibilitychange",()=>{
-    if(document.hidden){ state.lastSeen=now(); saveGame(); Audio.sleep(); }
+    if(document.hidden){ state.lastSeen=now(); saveNow(); Audio.sleep(); }
     else { applyOfflineDecay(); state.lastSeen=now(); applyTheme(); renderAll(); Audio.wake(); }
   });
-  // iOS can freeze the page into the back/forward cache without a visibilitychange
-  addEventListener("pagehide",()=>Audio.sleep());
+  /* Belt and braces for closing: not every browser sends visibilitychange
+     first (iOS back/forward cache, Android freezing a background tab). */
+  addEventListener("pagehide",()=>{ saveNow(); Audio.sleep(); });
+  addEventListener("beforeunload",()=>saveNow());
+  document.addEventListener("freeze",()=>saveNow());
   addEventListener("pageshow",()=>{ if(!document.hidden) Audio.wake(); });
   addEventListener("keydown",e=>{
     if(e.key==="Escape"){ if(document.getElementById("mg").classList.contains("open")) MG.close();
@@ -6247,7 +6265,12 @@ async function init(){
   requestAnimationFrame(t=>{ lastFrame=t; requestAnimationFrame(frame); });
   setInterval(tick,TICK_MS);
   setInterval(()=>{ applyTheme(); },60000);
-  setInterval(()=>{ state.lastSeen=now(); saveGame(); },20000);
+  setInterval(()=>{ if(!document.hidden) saveGame(); },20000);
+  saveGame();                                       // a brand-new home is saved straight away too
+  /* Ask the browser not to clear the save when the device is low on space.
+     Skipped on Firefox desktop/Android, which would show a permission prompt. */
+  try{ if(navigator.storage&&navigator.storage.persist&&/AppleWebKit/.test(navigator.userAgent))
+    navigator.storage.persisted().then(p=>{ if(!p) navigator.storage.persist().catch(()=>{}); }).catch(()=>{}); }catch(_){}
 
   const dot=document.getElementById("menuDot");
   setInterval(()=>{ dot.style.display=readyQuests()?"grid":"none"; },3000);
