@@ -1,0 +1,21 @@
+# Petopia World server (br8t.com/petopia/world/ through Caddy)
+[Unit]
+Description=Petopia World (published homes and leaderboard)
+After=network.target
+
+[Service]
+User=petopia
+Group=petopia
+Environment=PORT=8015 BIND=127.0.0.1 DATA_DIR=/srv/apps/petopia/data
+ExecStart=/srv/apps/petopia/petopia-world
+Restart=on-failure
+MemoryMax=40M
+CPUQuota=30%
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/srv/apps/petopia/data
+
+[Install]
+WantedBy=multi-user.target

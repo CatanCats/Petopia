@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#FBF3E7">
 <!-- what search engines and link previews (Facebook, X, Discord, iMessage, WhatsApp) show -->
-<meta name="description" content="Petopia is a free, cosy cat care game that runs in your browser. Raise kittens into cats, feed and play with them, teach tricks, decorate their rooms, weather the seasons and visit friends' homes. No download, works offline.">
+<meta name="description" content="Petopia is a open source, cosy cat care game that runs in your browser. Raise kittens into cats, feed and play with them, teach tricks, decorate their rooms, weather the seasons and visit friends' homes. No download, works offline.">
 <meta name="keywords" content="cat game, virtual pet, pet simulator, kitten game, cosy game, cozy game, browser game, html5 game, tamagotchi, cat cafe, free game, offline game">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Petopia">
@@ -4632,9 +4632,9 @@ share(){
     <div class="movebtns"><button class="buy use" id="shareCopy" ${Share.code?"":"disabled"}>📋 Copy code</button>${navigator.share?`<button class="buy" id="shareSend" ${Share.code?"":"disabled"}>📨 Send</button>`:""}</div>
     <div class="ds" style="font-size:11px;font-weight:700;color:var(--ink-soft);margin:4px 2px 10px">Your friend opens 🌏 → Visit a home, pastes it, and drops by. The code is a snapshot: share again after you redecorate.</div>
     <div class="coltitle">Or publish it to Petopia World</div>
-    <div class="ds" style="font-size:12px;font-weight:700;color:var(--ink-soft);margin:0 2px 6px">You get a short 6-letter code anyone can type, and a place on the public leaderboards. Opens GitHub (free account needed) — press <b>Submit</b>, and within a minute or two the Petopia robot replies with your code.</div>
-    <div class="movebtns"><button class="buy use" id="sharePublish" ${Share.code?"":"disabled"}>🌏 Publish on GitHub</button></div>
-    <div class="rename-row"><input id="myCode" maxlength="6" placeholder="Got your code? Type it here" value="${esc(P.code||"")}"><button class="buy" id="myCodeSave">Save</button></div>`};
+    <div class="ds" style="font-size:12px;font-weight:700;color:var(--ink-soft);margin:0 2px 6px">You get a short 6-letter code anyone can type, straight away, and a place on the public leaderboards. ${P.code?"Publishing again shows this room instead and keeps your code.":"No account needed."}</div>
+    <div class="movebtns"><button class="buy use" id="sharePublish" ${Share.code&&!Publish.busy?"":"disabled"}>${Publish.busy?"Just a moment…":P.code?"🌏 Update my published home":"🌏 Publish"}</button></div>
+    ${P.code?`<div class="ds" style="font-size:12px;font-weight:700;color:var(--ink-soft);margin:6px 2px">Your code: <b style="font-size:15px;letter-spacing:.08em">${esc(P.code)}</b> · <span class="linkish" id="shareTakeDown">take my home down</span></div>`:""}`};
 },
 /* ── tricks ── */
 tricks(){
@@ -4916,9 +4916,8 @@ function bindSheet(){
   if($("shareCopy")) $("shareCopy").onclick=async()=>{ try{ await navigator.clipboard.writeText(Share.code); toast("Code copied — paste it to a friend 📋"); }
     catch(e){ const t=$("shareCode"); t.focus(); t.select(); toast("Select the code and copy it"); } };
   if($("shareSend")) $("shareSend").onclick=()=>navigator.share({title:"My Petopia home",text:`Come and visit my Petopia home! Open 🌏 → Visit a home and paste this:\n${Share.code}`}).catch(()=>{});
-  if($("sharePublish")) $("sharePublish").onclick=()=>{ window.open(publishURL(state.player.name,Share.code),"_blank","noopener"); };
-  if($("myCodeSave")) $("myCodeSave").onclick=()=>{ const c=$("myCode").value.toUpperCase().replace(/[^A-Z0-9]/g,"");
-    if(c.length!==6){ toast("Codes are 6 letters, like KTZ4QA"); return; } state.player.code=c; saveGame(); toast(`Saved — your home is ${c} 🌏`); refreshSheet(); };
+  if($("sharePublish")) $("sharePublish").onclick=()=>Publish.go();
+  if($("shareTakeDown")) $("shareTakeDown").onclick=()=>Publish.takeDown();
   on("[data-unwear]",e=>{ const c=selectedCat(); delete c.wear[e.currentTarget.dataset.unwear];
     c._sig=null; Audio.sfx("click"); syncSprites(); saveGame(); refreshSheet(); });
   on("[data-quest]",e=>claimQuest(state.quests[+e.currentTarget.dataset.quest]));
@@ -5720,16 +5719,16 @@ function bindPlay(){
 
    • A share code holds the whole room (compressed): it works with no
      server at all, so it's sent by message rather than typed.
-   • Published homes live in this GitHub repo (world/index.json and
-     world/rooms/<CODE>.json). Anyone can read them, from any copy of the
-     game; that's what the 6-letter codes and the global board use.
-     Writing needs a GitHub account: "Publish" opens a pre-filled issue,
-     and a GitHub Action (.github/workflows/petopia-world.yml) checks the
-     code, files the home and replies with its 6-letter code.
+   • Published homes live on the Petopia World server at br8t.com
+     (world/server/ in this repo): index.json (the leaderboard) and
+     rooms/<CODE>.json, readable from any copy of the game; that's what the
+     6-letter codes and the global board use. "Publish" sends the share
+     code there; the server checks it and answers with the 6-letter code.
+     Only this game can update or take down its home: it proves that with
+     a random key kept in the save (state.player.key), never shared.
    Everything that comes in from a code is checked by cleanHome() before
    the game touches it.                                                  */
-const WORLD_REPO="CatanCats/Petopia";
-const WORLD_RAW=`https://raw.githubusercontent.com/${WORLD_REPO}/main/world`;
+const WORLD_API="https://br8t.com/petopia/world";
 const CODE_ALPHABET="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const NAME_BLOCK=["nigger","rape","nazi","hitler"];
 function nameProblem(n){
@@ -5807,14 +5806,14 @@ function cleanHome(o){
   return {id, name, at:num(o.at,9e15), room, cats,
     stats:{cats:num(S.c,999), rooms:num(S.r,50), catCoins:num(S.cc,1e7), streak:num(S.st,99999), ach:num(S.a,999)}};
 }
-/* the published world, fetched from GitHub; the last good copy is kept for offline */
+/* the published world, fetched from the Petopia World server; the last good copy is kept for offline */
 const World={
   index:null, fetchedAt:0, status:"", board:"cats", busy:false,
   async refresh(force){
     if(this.busy||(!force&&Date.now()-this.fetchedAt<120000)) return;
     this.busy=true; this.status="Checking Petopia World…";
     try{
-      const r=await fetch(`${WORLD_RAW}/index.json?t=${Math.floor(Date.now()/60000)}`,{cache:"no-store"});
+      const r=await fetch(`${WORLD_API}/index.json?t=${Math.floor(Date.now()/60000)}`,{cache:"no-store"});
       if(r.status===404){ this.index={homes:[]}; this.fetchedAt=Date.now(); this.status="No one has published a home yet — be the first!"; }
       else {
         if(!r.ok) throw new Error(r.status);
@@ -5832,8 +5831,8 @@ const World={
   async fetchCode(code){
     code=String(code||"").toUpperCase().replace(/[^A-Z0-9]/g,"");
     if(code.length!==6) throw new Error("Codes are 6 letters, like KTZ4QA.");
-    let r; try{ r=await fetch(`${WORLD_RAW}/rooms/${code}.json`,{cache:"no-store"}); }catch(e){ throw new Error("Couldn't reach Petopia World — are you online?"); }
-    if(r.status===404) throw new Error(`No home with code ${code} (new homes can take a few minutes to appear).`);
+    let r; try{ r=await fetch(`${WORLD_API}/rooms/${code}.json`,{cache:"no-store"}); }catch(e){ throw new Error("Couldn't reach Petopia World — are you online?"); }
+    if(r.status===404) throw new Error(`No home with code ${code}.`);
     if(!r.ok) throw new Error("Petopia World isn't answering — try again soon.");
     const j=await r.json(); const home=cleanHome(j.home); home.code=code; return home;
   },
@@ -5945,12 +5944,46 @@ const Visit={
     if(!quiet) openSheet("world");
   }
 };
-/* publishing: a pre-filled GitHub issue the Petopia robot picks up */
-function publishURL(name,code){
-  const body=`This is my Petopia home — please add it to Petopia World!\n\n${code}\n\n`+
-    `(Sent from Petopia. The Petopia robot checks the code, adds the home and replies with a 6-letter code. Published homes are public: anyone can see them and they appear on the leaderboards.)`;
-  return `https://github.com/${WORLD_REPO}/issues/new?title=${encodeURIComponent("[world] "+name)}&body=${encodeURIComponent(body)}`;
+/* publishing: straight to the Petopia World server, which checks the code and answers with
+   the 6-letter code. The key (random, made once, kept in the save) is what lets this game,
+   and only this one, update or take down its home. */
+function worldKey(){
+  const P=state.player;
+  if(!P.key){ const a=new Uint8Array(24); crypto.getRandomValues(a); P.key=b64url(a); saveGame(); }
+  return P.key;
 }
+async function worldPost(path,body){
+  // text/plain: a "simple" request, so copies on other sites (GitHub Pages, a downloaded file) need no preflight
+  let r; try{ r=await fetch(`${WORLD_API}/${path}`,{method:"POST",headers:{"content-type":"text/plain"},body:JSON.stringify(body)}); }
+  catch(e){ throw new Error("Couldn't reach Petopia World — are you online?"); }
+  let j=null; try{ j=await r.json(); }catch(e){}
+  if(!r.ok||!j||!j.ok) throw new Error((j&&j.error)||"Petopia World isn't answering — try again soon.");
+  return j;
+}
+const Publish={ busy:false,
+  async go(){
+    if(this.busy||!Share.code) return;
+    this.busy=true; refreshSheet();
+    try{
+      const j=await worldPost("publish",{code:Share.code,key:worldKey()});
+      state.player.code=j.code; saveGame(); Audio.sfx("unlock");
+      toast(j.added?`🎉 Your home is in Petopia World! Its code is ${j.code}`:`Updated 🌏 Your code is still ${j.code}`);
+      World.refresh(true);
+    }catch(e){ toast(e.message); }
+    this.busy=false; if(currentSheet==="share") refreshSheet();
+  },
+  async takeDown(){
+    if(this.busy||!confirm("Take your home off Petopia World? Its code will stop working.")) return;
+    this.busy=true; refreshSheet();
+    try{
+      const j=await worldPost("remove",{key:worldKey()});
+      state.player.code=null; saveGame();
+      toast(j.removed.length?`Taken down: ${j.removed.join(", ")}`:"You don't have a home in Petopia World");
+      World.refresh(true);
+    }catch(e){ toast(e.message); }
+    this.busy=false; if(currentSheet==="share") refreshSheet();
+  }
+};
 const Share={ room:null, code:"", busy:false,
   async make(){
     const r=getRoom(this.room)||activeRoom(); this.room=r.id; this.busy=true; this.code="";

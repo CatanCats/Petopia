@@ -4,7 +4,7 @@
 
 **A free virtual pet game about cats.** Raise kittens into cats, keep them fed, clean and happy, decorate their rooms, teach them tricks, play with them, and share your home with friends in Petopia World. A little like Tamagotchi but open source and raise real and fantasy pets.
 
-**▶ [Play in your browser](https://catancats.github.io/Petopia/)** · **⬇ [Download](https://github.com/CatanCats/Petopia/archive/refs/heads/main.zip)**
+**▶ [Play in your browser](https://br8t.com/petopia/)** ([or on GitHub Pages](https://catancats.github.io/Petopia/)) · **⬇ [Download](https://github.com/CatanCats/Petopia/archive/refs/heads/main.zip)**
 
 <p align="center">
   <img src="media/home.png" width="190" alt="A furnished room with three cats">
@@ -177,14 +177,9 @@ The code *is* the room (compressed), so it works with no server, but it's too lo
 
 ### Publish to Petopia World (public)
 
-**Publish on GitHub** gets you a **6-letter code** anyone can type, like `KTZ4QA`, and a place on the public leaderboards.
+🌏 → **Share my room** → **Publish** gets you a **6-letter code** anyone can type, like `KTZ4QA`, and a place on the public leaderboards. It takes a second and needs no account: the game sends the room to the Petopia World server, which answers with the code, and the game remembers it.
 
-1. The game opens a pre-filled GitHub issue. You need a free GitHub account.
-2. Press **Submit** without changing the text.
-3. Within a minute or two the Petopia robot replies with your code, and closes the issue.
-4. Type the code into 🌏 → Share → *Got your code?* so the game remembers it.
-
-New homes take up to about 5 minutes to appear for everyone. **Publish again** to update your home; you keep the same code. To take your homes down, open an issue titled **`[world-remove]`**. Each GitHub account can publish up to 3 homes.
+Your home is there for everyone straight away. **Update my published home** shows the room you picked instead and keeps the same code. **Take my home down** (under your code) removes it, and the code stops working.
 
 > **Published homes are public.** Anyone can visit them, and they're listed on the leaderboards.
 
@@ -200,16 +195,19 @@ Four boards: 🐱 **most cats**, 🐾 **most cat coins** collected, 🚪 **most 
 
 ### How it works (for the curious)
 
-- Published homes are plain files in this repo: `world/index.json` (the leaderboard) and `world/rooms/<CODE>.json` (one per home). Every copy of the game reads them from GitHub.
-- Players can't write to the repo directly, since that would need a secret key anyone could copy out of the game. Instead, **Publish** opens an issue, and **`.github/workflows/petopia-world.yml`** runs **`world/tools/publish.mjs`**. The script checks the code field by field, makes sure only the account that first published a home can update it, writes the files, and replies.
-- The game checks everything that arrives from a code or from GitHub (`cleanHome()` in `Petopia.html`) before using it.
+- Published homes live on the **Petopia World server** at `https://br8t.com/petopia/world/`: `index.json` (the leaderboard) and `rooms/<CODE>.json` (one per home). Every copy of the game reads them from there: br8t.com, GitHub Pages or a downloaded file.
+- **Publish** sends the share code to `publish`. The server (`world/server/`, a small Rust program) checks it field by field, with the same rules as the game, and answers with the code.
+- **Who owns a home:** each game makes a random secret key the first time it publishes and keeps it in its save. Only that key can update or take down the home. The server stores a hash of the key, never the key itself, and nothing secret is in the public files.
+- **Limits:** one home per game (publishing again replaces it). The server also allows 3 homes per key, 6 new homes a day and 20 publishes in 10 minutes from one internet address, and 2000 homes in all.
+- The game checks everything that arrives from a code or from the server (`cleanHome()` in `Petopia.html`) before using it.
 
-### Looking after Petopia World (repo owner)
+### Looking after Petopia World (server owner)
 
-- **Actions must be allowed:** Settings → Actions → General → allow actions, and set **Workflow permissions** to *Read and write*. If `main` is protected against direct pushes, the robot can't save homes: allow GitHub Actions to push, or drop the protection.
-- **Removing a home:** delete its entry from `world/index.json` and its `world/rooms/<CODE>.json`, then commit.
-- **Blocked words** live in two places that should match: `NAME_BLOCK` in `Petopia.html` and in `world/tools/publish.mjs`.
-- **Forks:** change `WORLD_REPO` near the top of the Petopia World section in `Petopia.html` to your own `owner/repo`.
+- **Server:** `petopia-world.service` runs `/srv/apps/petopia/petopia-world` as user `petopia` on `127.0.0.1:8015`, with its data in `/srv/apps/petopia/data/` (`index.json`, `rooms/`, and `owners.json`, which holds the key hashes and is never served). Caddy, inside the `br8t.com` block: `handle_path /petopia/world/* { reverse_proxy 127.0.0.1:8015 }`, and the game files from `/srv/apps/petopia/site` at `/petopia/`.
+- **Build:** `cd world/server && cargo build --release` (`cargo test` checks the code reader). `GET /status` gives the number of homes.
+- **Removing a home:** stop the service, delete its entry from `data/index.json`, its `data/rooms/<CODE>.json` and its line in `data/owners.json`, then start the service.
+- **Blocked words** live in two places that should match: `NAME_BLOCK` in `Petopia.html` and in `world/server/src/main.rs`.
+- **Forks:** change `WORLD_API` near the top of the Petopia World section in `Petopia.html` to your own server.
 
 ---
 
@@ -222,8 +220,7 @@ Four boards: 🐱 **most cats**, 🐾 **most cat coins** collected, 🚪 **most 
 | `petopia/petopia.html` | The same game, for the self-contained folder (only its songs path differs) |
 | `petopia/Songs/` | Background music |
 | `petopia/IDEAS.md` | Design notes on mini-games |
-| `world/` | Petopia World data, plus the robot's script in `world/tools/` |
-| `.github/workflows/petopia-world.yml` | The robot that files published homes |
+| `world/server/` | The Petopia World server (Rust) and its systemd service file |
 | `media/` | Screenshots and the link-preview image (`social-preview.png`) |
 | `sitemap.xml`, `robots.txt` | Help search engines find the online version |
 | `Old Versions/` | Earlier versions, kept for reference |
