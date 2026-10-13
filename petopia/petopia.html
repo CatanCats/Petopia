@@ -112,6 +112,15 @@ input,button,textarea{font-family:inherit;color:inherit;}
 .furniHit{position:absolute;pointer-events:auto;touch-action:none;cursor:grab;}
 .furniHit.dragging{cursor:grabbing;}
 .catsLayer{position:absolute;inset:0;z-index:4;pointer-events:none;}
+/* messes on the floor: above the cats so a cat standing on one can't hide it from taps */
+.poopLayer{position:absolute;inset:0;z-index:5;pointer-events:none;}
+.poop{position:absolute;left:0;top:0;width:40px;height:40px;margin:-34px 0 0 -20px;display:grid;place-items:center;
+  pointer-events:auto;cursor:pointer;touch-action:none;-webkit-tap-highlight-color:transparent;}
+.poop .pi{font-size:23px;line-height:1;animation:plop .35s ease;filter:drop-shadow(0 2px 1px rgba(0,0,0,.18));}
+.poop .stink{position:absolute;top:0;left:23px;font-size:12px;font-weight:900;color:#8a9a52;animation:stink 2.2s ease-in-out infinite;}
+@keyframes plop{0%{transform:scale(.2) translateY(-10px)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
+@keyframes stink{0%,100%{transform:translateY(0);opacity:.2}50%{transform:translateY(-6px);opacity:.9}}
+.decorating .poop{opacity:.4;pointer-events:none;}
 .uiLayer{position:absolute;inset:0;z-index:8;pointer-events:none;}
 .uiLayer > *{pointer-events:auto;}
 #playCv{position:absolute;inset:0;width:100%;height:100%;display:none;touch-action:none;cursor:crosshair;}
@@ -551,6 +560,7 @@ body.visiting #menuBtn, body.visiting #worldBtn, body.visiting .hint{display:non
     <canvas id="wxCv"></canvas>
     <div class="furniLayer" id="furniLayer"></div>
     <div class="catsLayer" id="catsLayer"></div>
+    <div class="poopLayer" id="poopLayer"></div>
     <canvas id="glFx"></canvas>
     <div class="uiLayer" id="uiLayer">
       <canvas id="playCv"></canvas>
@@ -2987,6 +2997,44 @@ function positionFurniHits(){
     setStyle(el,"zIndex",String(Math.round(p.y*200)));
   }
 }
+/* Messes on the floor. They used to be emoji in their own layer; the WebGL
+   room rewrite dropped that layer, so messes were still made (and still hurt
+   hygiene) but were invisible. Each mess is a DOM element positioned like
+   the cats, so it gets exact taps of its own. */
+let poopEls={};
+function syncPoops(){
+  const layer=document.getElementById("poopLayer"); if(!layer||!state) return;
+  const r=activeRoom(), ids=new Set(r.poops.map(p=>p.id));
+  for(const id in poopEls){ if(!ids.has(id)){ poopEls[id].remove(); delete poopEls[id]; } }
+  for(const p of r.poops){
+    if(poopEls[p.id]) continue;
+    const el=document.createElement("div");
+    el.className="poop"; el.setAttribute("role","button"); el.setAttribute("aria-label","Clean up this mess");
+    el.innerHTML=`<span class="pi">${p.type==="spew"?"🤮":"💩"}</span><span class="stink">~</span>`;
+    // keep the stage from treating this as the start of a pan
+    el.addEventListener("pointerdown",e=>e.stopPropagation());
+    el.addEventListener("click",e=>{ e.stopPropagation();
+      const cur=activeRoom().poops.find(x=>x.id===p.id); if(cur) cleanPoop(cur); });
+    layer.appendChild(el); poopEls[p.id]=el;
+  }
+}
+function positionPoops(){
+  if(!state) return;
+  const r=activeRoom(), V=View;
+  // messes are added from many places (ticks, cat behaviours), so notice new or cleaned ones here
+  let n=0, stale=false;
+  for(const p of r.poops){ n++; if(!poopEls[p.id]){ stale=true; break; } }
+  if(stale||n!==Object.keys(poopEls).length) syncPoops();
+  for(const p of r.poops){
+    const el=poopEls[p.id]; if(!el) continue;
+    const [sx,sy]=V.toScreen(p.x,p.y);
+    if(sx<-40||sx>V.w+40){ setStyle(el,"display","none"); continue; }
+    setStyle(el,"display","grid");
+    const depth=clamp((p.y-CAT_BAND[0])/(CAT_BAND[1]-CAT_BAND[0]),0,1);
+    setStyle(el,"transform",`translate(${sx.toFixed(1)}px,${sy.toFixed(1)}px) scale(${(0.85+depth*0.25).toFixed(3)})`);
+    setStyle(el,"zIndex",String(Math.round(p.y*200)));
+  }
+}
 /* Mirrors the old version's makeDraggable() almost exactly: each element
    owns its own pointer sequence and stops it from bubbling to the stage,
    so a drag here is never mistaken for a room-pan gesture. */
@@ -4218,6 +4266,7 @@ function frame(ts){
     Wx.frame(dt);
     positionSprites();
     positionFurniHits();
+    positionPoops();
     if(roomNeedsRedraw(ts/1000)) drawRoom(ts/1000);
     Visit.frame();
     ambientSpawn(dt);
