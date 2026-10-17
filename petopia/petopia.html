@@ -121,6 +121,8 @@ input,button,textarea{font-family:inherit;color:inherit;}
 @keyframes plop{0%{transform:scale(.2) translateY(-10px)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
 @keyframes stink{0%,100%{transform:translateY(0);opacity:.2}50%{transform:translateY(-6px);opacity:.9}}
 .decorating .poop{opacity:.4;pointer-events:none;}
+.poop.tray{width:auto;min-width:40px;padding:0 4px;}
+.poop.tray .pi{font-size:17px;letter-spacing:-5px;}
 .uiLayer{position:absolute;inset:0;z-index:8;pointer-events:none;}
 .uiLayer > *{pointer-events:auto;}
 #playCv{position:absolute;inset:0;width:100%;height:100%;display:none;touch-action:none;cursor:crosshair;}
@@ -2127,7 +2129,9 @@ const DECAY={tummy:0.0042, energy:0.0050, mood:0.0062, hygiene:0.0052, tummySlee
 const FX_GAIN={mood:DECAY.mood*10, energy:DECAY.energy*5};
 const MOOD_GAIN_SCALE=0.42;      // every mood gain is scaled by this
 const BOND_PER_PET=0.14, BOND_PER_GAME=1.6, BOND_PER_DAY_CARED=2.5;
-const POTTY_INTERVAL=4*3600000;
+/* Real time between toilet trips. It was 4 hours, which with a litter tray
+   meant a floor mess almost never happened in normal play. */
+const POTTY_INTERVAL=90*60000;
 const BREED_TIME=3600000;
 const EARN_CAP_PER_HOUR=34;
 const RUB_WINDOW_MS=5000;
@@ -3018,9 +3022,36 @@ function syncPoops(){
     layer.appendChild(el); poopEls[p.id]=el;
   }
 }
+/* a dirty litter tray shows it: one to three 💩 on top, tap to scoop */
+let trayEls={};
+function positionTrays(r){
+  const layer=document.getElementById("poopLayer"), V=View, seen={};
+  for(const p of r.placed){
+    const it=ITEM_BY_ID[p.item]; if(!it||!it.fn||it.fn.k!=="litter") continue;
+    const clean=litterClean(r,p.u), n=clean<20?3:clean<45?2:clean<70?1:0;
+    if(!n) continue;
+    seen[p.u]=1;
+    let el=trayEls[p.u];
+    if(!el){
+      el=document.createElement("div"); el.className="poop tray";
+      el.setAttribute("role","button"); el.setAttribute("aria-label","Scoop the litter tray");
+      el.addEventListener("pointerdown",e=>e.stopPropagation());
+      el.addEventListener("click",e=>{ e.stopPropagation(); cleanLitterAt(activeRoom(),p.u); });
+      layer.appendChild(el); trayEls[p.u]=el;
+    }
+    if(el._n!==n){ el._n=n; el.innerHTML=`<span class="pi">${"💩".repeat(n)}</span><span class="stink">~</span>`; }
+    const sx=p.x*V.worldW-V.camX, t=Math.max(0,(p.y-HORIZON)/(1-HORIZON)), w=it.w*(0.74+t*0.46);
+    if(sx<-w||sx>V.w+w){ setStyle(el,"display","none"); continue; }
+    setStyle(el,"display","grid");
+    setStyle(el,"transform",`translate(${sx.toFixed(1)}px,${(p.y*V.h-w*0.28).toFixed(1)}px)`);
+    setStyle(el,"zIndex",String(Math.round(p.y*200)+1));
+  }
+  for(const u in trayEls){ if(!seen[u]){ trayEls[u].remove(); delete trayEls[u]; } }
+}
 function positionPoops(){
   if(!state) return;
   const r=activeRoom(), V=View;
+  positionTrays(r);
   // messes are added from many places (ticks, cat behaviours), so notice new or cleaned ones here
   let n=0, stale=false;
   for(const p of r.poops){ n++; if(!poopEls[p.id]){ stale=true; break; } }
@@ -4116,6 +4147,30 @@ function assignBehavior(c){
   }
   c.behavior="wander"; const w=wanderSpot(); c.tx=w.tx; c.ty=w.ty;
 }
+/* One toilet trip: use the tray, miss it, or go on the floor if there isn't
+   a usable one. A tray that's nearly full gets refused outright. */
+function pottyTrip(c,r,box,active,x,y){
+  c.lastPottyAt=now();
+  if(box){
+    const clean=litterClean(r,box.u), fill=100-clean;
+    let miss=Math.min(0.35,fill/100*0.35)*0.30;
+    if(traitOf(c)==="accident") miss*=2;
+    if(clean<=12) miss=1;                                  // full: no cat wants that
+    if(settled(c)) miss=0;
+    if(Math.random()>miss){
+      setLitterClean(r,box.u,clean-22);
+      if(active){ spriteAnim(c,"squat",1100); emote("used the tray 🚽"); }
+    } else {
+      if(r.poops.length<12) r.poops.push({id:uid("p"),x:clamp(box.x+rnd(-0.04,0.04),0.04,0.96),y:Math.min(0.95,box.y+0.03)});
+      if(active){ spriteAnim(c,"squat",1100); emote(clean<=12?"the tray's full! 💩":"oops, missed! 💩"); }
+    }
+  } else if(r.poops.length<12){
+    r.poops.push({id:uid("p"),x:clamp(x,0.04,0.96),y:clamp(y,CAT_BAND[0],CAT_BAND[1])});
+    if(active){ spriteAnim(c,"squat",1100); emote("no clean tray… 💩"); }
+    if(active&&litterSpots(r).length<residentsOf(r.id).length)
+      pushMsg(`${c.name} had no tray of their own — each cat wants one 🧰`,false);
+  }
+}
 function arrive(c){
   const r=getRoom(c.roomId), active=c.roomId===state.activeRoom;
   switch(c.behavior){
@@ -4124,28 +4179,9 @@ function arrive(c){
       if(!feederEat(c)&&active) emote("feeder's empty… 🍽️");
       break;
     case "goPotty": {
-      c.lastPottyAt=now();
-      const accident=traitOf(c)==="accident";
       const box=c._pottyBox?litterSpots(r).find(p=>p.u===c._pottyBox):null;
-      if(box){
-        const fill=100-litterClean(r,box.u);
-        let miss=Math.min(0.35,fill/100*0.35)*0.30;
-        if(accident) miss*=2;
-        if(settled(c)) miss=0;
-        if(Math.random()>miss){
-          setLitterClean(r,box.u,litterClean(r,box.u)-22);
-          if(active){ spriteAnim(c,"squat",1100); emote("used the tray 🚽"); }
-        } else {
-          if(r.poops.length<12) r.poops.push({id:uid("p"),x:box.x,y:Math.min(0.95,box.y+0.03)});
-          if(active){ spriteAnim(c,"squat",1100); emote("oops, missed! 💩"); }
-        }
-        c._pottyBox=null;
-      } else if(r.poops.length<12){
-        r.poops.push({id:uid("p"),x:c.x,y:c.y});
-        if(active){ spriteAnim(c,"squat",1100); emote("no clean tray… 💩"); }
-        if(active&&litterSpots(r).length<residentsOf(r.id).length)
-          pushMsg(`${c.name} had no tray of their own — each cat wants one 🧰`,false);
-      }
+      pottyTrip(c,r,box,active,c.x,c.y);
+      c._pottyBox=null;
       break;
     }
     case "goPlay": {
@@ -4515,6 +4551,21 @@ function applyOfflineDecay(){
     c.rubAt=Math.max(c.rubAt,now()+rnd(60000,RUB_MAX_GAP));
     c._sig=null;
   }
+  /* cats kept going to the toilet while you were away, so there's a tray to
+     scoop (or a mess to clean) when you come back */
+  let messes=0;
+  for(const c of state.cats){
+    if(c.away) continue;
+    const r=getRoom(c.roomId); if(!r) continue;
+    const since=now()-(c.lastPottyAt||state.lastSeen);
+    const trips=Math.min(4,Math.floor(since/POTTY_INTERVAL));
+    for(let i=0;i<trips;i++){
+      const before=r.poops.length, w=wanderSpot();
+      pottyTrip(c,r,bestLitterSpot(r,c),false,w.tx,w.ty);
+      messes+=r.poops.length-before;
+    }
+  }
+  if(messes>0) setTimeout(()=>pushMsg(`There ${messes>1?`are ${messes} messes`:"is a mess"} to clean up 🧹`,false),1900);
   if(coins>0){ state.pts+=coins; setTimeout(()=>pushMsg(`Your happy cats earned ${coins} coins while you were out 🪙`,false),1400); }
   const hrs=Math.floor(elapsed/3600);
   if(hrs>=1) setTimeout(()=>pushMsg(`Welcome back! Your cats waited ${hrs}h — go say g'day 🐾`,false),900);
